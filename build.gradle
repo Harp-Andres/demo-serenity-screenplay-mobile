@@ -1,0 +1,80 @@
+plugins {
+    id 'java'
+    id 'net.serenity-bdd.serenity-gradle-plugin' version '5.1.0'
+}
+
+repositories {
+    mavenCentral()
+}
+
+ext {
+    // Definición de versiones para las dependencias
+    serenityVersion = '5.1.0'
+    junit5Version = '6.1.0-M1'
+    log4jVersion = '2.25.3'
+    guavaVersion = '33.5.0-jre'
+    serenityJunit5Version = '5.2.1'
+    appiumVersion = '10.0.0'
+}
+
+dependencies {
+    // Serenity Core & Mobile
+    implementation "net.serenity-bdd:serenity-core:${serenityVersion}"
+    implementation "net.serenity-bdd:serenity-screenplay:${serenityVersion}"
+    implementation "net.serenity-bdd:serenity-screenplay-webdriver:${serenityVersion}"
+    implementation "net.serenity-bdd:serenity-ensure:${serenityVersion}"
+    testImplementation("net.serenity-bdd:serenity-junit5:${serenityJunit5Version}")
+    implementation "io.appium:java-client:${appiumVersion}"
+    // Integración Junit5 + Cucumber
+    testImplementation "net.serenity-bdd:serenity-cucumber:${serenityVersion}"
+    testImplementation("org.junit.jupiter:junit-jupiter-engine:${junit5Version}")
+    testImplementation("io.cucumber:cucumber-junit-platform-engine:7.34.2")
+    testImplementation("org.junit.platform:junit-platform-suite-engine:${junit5Version}")
+    // Utilidades y Logs
+    implementation "com.google.guava:guava:${guavaVersion}"
+    implementation "org.apache.logging.log4j:log4j-core:${log4jVersion}"
+    testImplementation "org.slf4j:slf4j-simple:2.0.17"
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
+
+sourceSets {
+    test {
+        resources {
+            srcDir 'src/test/resources/'
+        }
+    }
+}
+
+processTestResources {
+    duplicatesStrategy = DuplicatesStrategy.WARN // Te avisa qué está duplicado para que lo limpies
+}
+
+defaultTasks('clean','test','aggregate')
+
+test {
+    useJUnitPlatform()
+    systemProperty "file.encoding", "UTF-8"
+    // Variables para Appium / CI / ambientes
+    systemProperties System.getProperties() as Map<String, ? extends Object>
+
+    testLogging {
+        events "passed", "skipped", "failed"
+        showStandardStreams = true
+    }
+
+    // Obligatorio para Serenity
+    finalizedBy aggregate
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+serenity{
+    reports = ['single-page-html']
+}

@@ -1,0 +1,273 @@
+-------COMPONENTE PRÁCTICO (Funcional)-------
+/*
+1) Redactar las siguientes consultas en SQL
+a. Seleccione el total de estudiantes Masculinos Registrados
+
+*/
+SELECT 
+    student_id AS id, 
+    name, 
+    gender 
+FROM students 
+WHERE gender = 'M'
+ORDER BY name ASC;
+
+SELECT 
+    COUNT(gender) AS total_masculinos
+FROM 
+    STUDENTS
+WHERE 
+    gender = 'M';
+
+--b. Elimine los estudiantes nacidos antes 2000
+
+DELETE FROM 
+    STUDENTS
+WHERE 
+    YEAR(BIRTHDATE) < 2000;
+	
+--c. Actualice la descripción de la carrera con id '10026’ de “Administración” a “Administración de Empresas”.
+
+UPDATE 
+    CAREERS
+SET 
+    DESCRIPTION = 'Administración de Empresas'
+WHERE 
+    CAREER_ID = '10026';
+	
+--d. Muestre los nombres de los estudiantes que estén cursando dos o más materias.
+
+SELECT 
+    S.name
+FROM 
+    STUDENTS S
+JOIN 
+    CAREER_STUDENT CS ON S.STUDENT_ID = CS.STUDENT_ID
+GROUP BY 
+    S.STUDENT_ID, S.name
+HAVING 
+    COUNT(CS.CAREER_ID) >= 2;
+	
+--e. Calificación promedio de todos los estudiantes que estén cursando carreras
+
+SELECT 
+    AVG(CALIFICATION) AS promedio_calificacion
+FROM 
+    CAREER_STUDENT;
+
+--f. Muestra el nombre, carrera id, correos de los estudiantes que tienen una calificación mayor 70.
+
+SELECT 
+    S.name, 
+    CS.CAREER_ID, 
+    S.EMAIL
+FROM 
+    STUDENTS S
+JOIN 
+    CAREER_STUDENT CS ON S.STUDENT_ID = CS.STUDENT_ID
+WHERE 
+    CS.CALIFICATION > 70; 
+	
+--g. Cuántos estudiantes que estén cursando 2 o más carreras
+
+SELECT 
+    COUNT(*) AS total_estudiantes_multi_carrera
+FROM (
+    SELECT student_id
+    FROM CAREER_STUDENT
+    GROUP BY student_id
+    HAVING COUNT(DISTINCT career_id) >= 2
+) AS SubQuery;
+
+
+--2) De la siguiente imagen, reporte al menos un bug que incluya todos los datos que
+--considere relevantes para que un desarrollador pueda replicarlo y solucionarlo.
+
+/*
+ID: BUG-0001 Duplicidad de métodos de pago en modal seleccion de metodo pago (RappiCuenta)
+1. Resumen (Summary):
+Se evidencia redundancia y ambiguedad en la lista de métodos de pago entre "RappiCuenta o débito" y "RappiCuenta"  en el modal seleccion metodo de pago.
+2. Severidad y Prioridad:
+Severidad: Medium (Impacta la lógica de negocio y UX).
+Prioridad: Medium (Confunde al usuario en el momento crítico del pago).
+3. Entorno de Pruebas (Environment):
+App Version: v7.42.0 (Build 1024)
+OS: iOS 17.4 / Android 14
+Device: iPhone 15 Pro / Samsung S23
+Account Type: Usuario con RappiCuenta activa y saldo disponible.
+En ambos dispotitivos se evidencia el defecto.
+4. Descripción (Description):
+En la pantalla de selección de método de pago, se visualizan dos entradas que parecen apuntar al mismo producto financiero ("RappiCuenta"). Ambas opciones comparten el mismo subtitulo de descripcion: "Pago fácil e inmediato". Esto genera desorientacion y falta de claridad sobre cuál opción debe elegir el usuario.
+5. Pasos para Reproducir (Steps to Reproduce):
+Loguearse con una cuenta que tenga configurada una RappiCuenta.
+Agregar cualquier producto al carrito (ej. monto $1.500).
+Proceder al Checkout.
+Hacer clic en "Cambiar método de pago" o "Ver todos los métodos".
+Observar la sección de métodos de pago disponibles.
+6. Resultado Esperado (Expected Result):
+Cada método de pago debe ser único y claramente diferenciado. Si son el mismo método, debe aparecer una sola vez. Si hay una diferencia técnica (ej. una es vía saldo directo y otra vía tarjeta de débito vinculada), los nombres y descripciones deben reflejar esa diferencia.
+7. Resultado Actual (Actual Result):
+Se muestran dos opciones redundantes:
+Opción A: "RappiCuenta o débito"
+Opción B: "RappiCuenta"
+Ambas con la misma descripción, induciendo al error o duda del usuario.
+8. Evidencia (Attachment):
+[📷 screenshot_checkout_redundancy.png] (Señalando con un recuadro rojo ambas opciones).
+9. Notas Adicionales / Hipótesis técnica:
+Posible causa: Se esta mostrando un WALLET legacy que con los nuevos cambios subidos reaparecio.
+
+*/
+
+
+-----COMPONENTE TEÓRICO (Automation)-----
+
+/*
+Basado en su experiencia, responda las siguientes preguntas:
+1. ¿Cuáles son las principales diferencias entre automatizar en Android vs iOS con
+Appium?
+* Los elementos son diferentes
+* La forma de seleccionar los elementos es diferente
+* Algunas sentencias son especificas para cada tecnologia como por ejemplo matar procesos o acceder a recursos del SO.
+* Se debe contar por lo general con un sistema base en IOS para automatizar IOS dispositivos fisicos, granjas etc.
+* Se requiere un driver diferente para cada uno por ejemplo (UiAutomator2, XCUITest)
+* Las extenciones de las apps con diferentes.
+
+2. ¿Cómo diseñaría un framework de automatización para mobile multiplataforma que sea
+mantenible y escalable?
+* Usaria un patron de diseño como POM/Screenplay ejemplo de capas:
+* Capa para los test solo logica de negocio.
+* Capa de page objects cada pantalla es un objeto con sus respectivas acciones
+* Tendria una capa para los locators los cuales serian dinamicos.
+* Tendria una capa core para propiedades especificas y de inicializacion del Driver segun la plataforma.
+* La arquitectura en general la enfocaria no por capaz si no por dominio de negocio.
+** Otra opcion en vez de manejar logica como page object seria manejar esta capa por flujos o tareas de negocio tipo screenplay.
+* Capa para questions o pregunta directa con asercion en el test, si queremos mas abstraccion y desacoplaniento vendria bien la capa question.
+* Capa de models
+* Capa de data si se usa cucumber y este administra los datos no es necesaria.
+
+3. ¿Qué criterios usa para seleccionar qué casos se deben automatizar y cuáles no?
+* Casos de prueba con total importancia para el negocio.
+* Casos de prueba repetitivos de regresion que consumen mucho tiempo manualmente.
+* Casos de prueba donde la funcionalidad cambie segun los datos.
+* Casos de prueba donde la funcionalidad sea inestable es mejor no avanzar traera mayor refactor.
+* Casos de prueba donde no es constante o no se sabe el resultado no seria viable,
+  si es indispensable tocaria mirar con pinzas como nos acercamos a el dinamismo de el resultado sin entrar al detalle exacto porque en el escenario fallaria con seguridad.
+* Funcionalidad de un solo uso.
+* Funcionalidades que dependen de hardware o software complejo o inestable para automatizar.
+* Pruebas exploratorias o para encontrar nuevos bugs.
+
+4. ¿Qué estrategias aplicaría para integrar pruebas automáticas en un pipeline CI/CD?
+
+* Uso de granjas de dispositivos como BrowserStack, si no es posible por costos en un equipo MAC correr las pruebas de IOS y las de android en azure por ejemplo.
+* Al hacer un pull request en el ambiente de pruebas se deben corren las pruebas criticas para el negocio.
+* En horas de la noche se puede programar un trigger para que lance la ejecucion de toda la suit de pruebas.
+* Podemos usar dockerizacion para android y una estrategia de agentes en paralelo para IOS.
+* En el pipeline de build deberiamos compilar la app y publicarla.
+* En el pipeline de release dependiendo de los triggers configurados deberiamos lanzar las pruebas definidas.
+* Configurar reintentos automaticos para fallas sobre todo de infraestructura y test inestables.
+
+5. Mencione las ventajas y desventajas de trabajar con dispositivos físicos vs. dispositivos
+en remoto / granja de dispositivos cuando ejecuta una suite de automatización.
+
+* Los dispositivos fisicos son mas fiables vs los dispositivos emulados.
+* Pruebas mas rapidas en dispositivos fisicos.
+* Por lo general los dispositivos fisicos son mas fiables para interactuar con el hardware.
+* Si son pocas pruebas o no es el core suele salir mas economico tener dispositivos fisicos.
+* En dispositivos fisicos hay mayor probabilidad de errores humanos y/o tecnicos.
+* Escalabilidad nula en dispositivos netamente fisicos, la escalabilidad fisica requiere comparar o tener mas dispositivos disponibles.
+
+6. ¿Qué patrones de diseño ha implementado en sus proyectos que considere eficaces
+para minimizar la duplicación de código y mejorar la legibilidad al desarrollar
+automatizaciones para dispositivos móviles?
+
+* POM con Page Factory y Screenplay.
+
+*/
+
+
+--COMPONENTE PRÁCTICO (Automation)
+
+/*
+a) En la vista de Login se implementa un método para validar que todos los labels
+definidos en el diseño se encuentren presentes. A continuación verá el código
+implementado.
+Instrucción: De acuerdo a su experiencia indique si está de acuerdo con la forma en la que
+fue implementado el método. En caso de no estar de acuerdo. Indíquenos qué
+modificaciones haría o reescriba el método para ver reflejados sus cambios y justifique su
+respuesta.
+
+
+public class LoginPage {
+    private final AppiumDriver driver;
+    private final WebDriverWait wait;
+
+    @AndroidFindBy(id = "id_user")
+    @iOSXCUITFindBy(accessibility = "id_user")
+    private WebElement labelUser;
+
+    @AndroidFindBy(xpath = "//*")
+    @iOSXCUITFindBy(accessibility = "id_label_hola")
+    private WebElement labelHola;
+	
+	@AndroidFindBy(xpath = "//*")
+    @iOSXCUITFindBy(accessibility = "id_label_pass")
+    private WebElement labelPass;
+	
+	@AndroidFindBy(xpath = "//*")
+    @iOSXCUITFindBy(accessibility = "id_label_forgot")
+    private WebElement labelForgot;
+
+    public LoginPage(AppiumDriver driver) {
+        this.driver = driver;
+        this.wait = new WebDriverWait(driver, Duration.ofSeconds(15));
+        PageFactory.initElements(new AppiumFieldDecorator(driver), this);
+    }
+	
+	public boolean verifyLabelsArePresent(AppiumDriver driver) {
+	  
+		WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(15));
+		
+		try {
+		   
+			wait.until(ExpectedConditions.visibilityOf(labelUser));
+            wait.until(ExpectedConditions.visibilityOf(labelHola));
+			wait.until(ExpectedConditions.visibilityOf(labelPass));
+			//Esta verificacion tal vez toque hacer solo en e3scenarios negativos donde el pass se ha incorrecto
+            wait.until(ExpectedConditions.visibilityOf(labelForgot));
+
+			boolean isUserCorrect = labelUser.getText().contains("Iniciar Sesión");
+			boolean isHolaCorrect = labelHola.getText().contains("Hola");
+			boolean isPassCorrect = labelPass.getText().equals("Ingresa tu contraseña de 6 dígitos");
+			//Esta verificacion tal vez toque hacer solo en e3scenarios negativos donde el pass se ha incorrecto
+			boolean isForgotCorrect = labelForgot.getText().equals("Olvidé mi contraseña");
+
+			return isUserCorrect && isHolaCorrect && isPassCorrect && isForgotCorrect;
+
+		} catch (Exception e) {
+			System.err.println("Fallo al verificar etiquetas: " + e.getMessage());
+			return false;
+		}
+	}
+}
+
+El método refactorizado es más óptimo porque utiliza esperas explícitas (WebDriverWait) que esperan dinámicamente a que cada elemento esté presente y visible,
+eliminando el ineficiente y estático Thread.sleep(). 
+Además, se usan localizadores con pagefactory con anotaciones multiplataforma aplicando POM con pagefactory.
+
+
+b) En la vista del Home del App, se necesita crear dos métodos: El primero estará
+encargado de verificar si el usuario se encuentra o no en el Home del App y el segundo
+realizará la acción de dar tap en el botón de Rappipay para ingresar al login. A
+continuación verá la definición de los elementos que se tuvieron en cuenta.
+Instrucción: De acuerdo a su experiencia indique si está de acuerdo con la forma en la que
+se definieron los elementos. En caso de no estar de acuerdo. Indíquenos qué
+modificaciones haría o reescriba el código para ver reflejados sus cambios y justifique su
+respuesta:
+
+Estoy parcialmente de acuerdo aunque:
+* Definiria un estandar para el nombramiento de estos localizadores ya que se esta usando calemCase y UPPER_SNAKE_CASE.
+* Definiria que todos los localizadores indiquen con que elemento va a interactuar.
+* Si los elementos son estables definiria las etiquetas en los xpath para que se han mas rapidos los test.
+
+
+*/
