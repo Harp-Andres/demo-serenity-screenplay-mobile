@@ -1,27 +1,35 @@
 package org.example.stepsdefinitions.hooks;
+
 import io.cucumber.java.After;
 import io.cucumber.java.Before;
+import net.serenitybdd.annotations.Managed;
 import net.serenitybdd.screenplay.actors.OnStage;
 import net.serenitybdd.screenplay.actors.OnlineCast;
+import net.serenitybdd.screenplay.abilities.BrowseTheWeb;
+import org.openqa.selenium.WebDriver;
+import io.appium.java_client.android.AndroidDriver;
+
+import static net.thucydides.core.webdriver.ThucydidesWebDriverSupport.getDriver;
+
 
 public class HooksSteps {
 
+    @Managed(driver = "appium")
+    WebDriver hisMobileDevice; // Cambiado a WebDriver para mejor compatibilidad con el Facade
+
     @Before
     public void prepareActor() {
-        // Inicializa el escenario con un reparto que puede usar la web/móvil
         OnStage.setTheStage(new OnlineCast());
+        // Forzamos la inicialización llamando al driver antes de asignarlo
+        hisMobileDevice.manage().window();
+        // ...
+        WebDriver driver = getDriver();
 
-        // Al llamar al actor, Serenity abrirá el AppiumDriver
-        // automáticamente basándose en tu archivo serenity.conf
-        OnStage.theActorCalled("Andres");
+        OnStage.theActorCalled("Andres").can(BrowseTheWeb.with(hisMobileDevice));
     }
 
     @After
     public void tearDown() {
-        // Cierra el driver y limpia el escenario
         OnStage.drawTheCurtain();
-
-        // Si manejas el servidor manualmente, descomenta la siguiente línea:
-        // AppiumServerManager.stopServer();
     }
 }

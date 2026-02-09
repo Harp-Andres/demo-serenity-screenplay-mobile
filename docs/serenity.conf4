@@ -1,0 +1,20 @@
+webdriver {
+  driver = appium
+  capabilities {
+    platformName = "Android"
+    # Esta línea es clave para que Serenity sepa que es Mobile
+    "appium:automationName" = "UiAutomator2"
+  }
+}
+
+appium {
+  hub = "http://127.0.0.1:4723"
+  "appium:platformName" = Android
+  "appium:automationName" = UiAutomator2
+  "appium:deviceName" = "emulator-5554"
+  "appium:udid" = "emulator-5554"
+  "appium:appPackage" = "com.google.android.apps.safetyhub"
+  "appium:appActivity" = ".LauncherActivity"
+  "appium:noReset" = true
+  "appium:newCommandTimeout" = 120
+}

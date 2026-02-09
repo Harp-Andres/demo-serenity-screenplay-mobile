@@ -9,11 +9,11 @@ repositories {
 
 ext {
     // Definición de versiones para las dependencias
-    serenityVersion = '5.1.0'
+    serenityVersion = '5.2.2'
     junit5Version = '6.1.0-M1'
     log4jVersion = '2.25.3'
     guavaVersion = '33.5.0-jre'
-    serenityJunit5Version = '5.2.1'
+    serenityJunit5Version = '5.2.2'
     appiumVersion = '10.0.0'
 }
 
@@ -30,6 +30,8 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-engine:${junit5Version}")
     testImplementation("io.cucumber:cucumber-junit-platform-engine:7.34.2")
     testImplementation("org.junit.platform:junit-platform-suite-engine:${junit5Version}")
+    testImplementation "org.junit.jupiter:junit-jupiter-api:6.0.1"
+    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:6.0.1"
     // Utilidades y Logs
     implementation "com.google.guava:guava:${guavaVersion}"
     implementation "org.apache.logging.log4j:log4j-core:${log4jVersion}"
@@ -73,8 +75,4 @@ test {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
-}
-
-serenity{
-    reports = ['single-page-html']
 }

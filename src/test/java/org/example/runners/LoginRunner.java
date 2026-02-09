@@ -16,9 +16,9 @@ import static io.cucumber.junit.platform.engine.Constants.PLUGIN_PROPERTY_NAME;
 @SelectClasspathResource("features")
 @ConfigurationParameter(key = GLUE_PROPERTY_NAME, value = "org.example.stepsdefinitions")
 @ConfigurationParameter(key = PLUGIN_PROPERTY_NAME, value =  "net.serenitybdd.cucumber.core.plugin.SerenityReporter,pretty")
-@ConfigurationParameter(key = PLUGIN_PROPERTY_NAME, value =  "net.serenitybdd.cucumber.core.plugin.SerenityReporterParallel ,pretty")
 //Para CD y CI pruebas en paralelo
 //@ConfigurationParameter(key = "serenity.batch.strategy", value = "DIVIDE_BY_TEST_COUNT")
+//@ConfigurationParameter(key = PLUGIN_PROPERTY_NAME, value =  "net.serenitybdd.cucumber.core.plugin.SerenityReporterParallel ,pretty")
 @ConfigurationParameter(key = "cucumber.snippet-type", value = "camelcase")
 public class LoginRunner {
 }
