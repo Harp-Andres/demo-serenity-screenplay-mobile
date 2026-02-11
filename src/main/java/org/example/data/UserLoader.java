@@ -1,6 +1,6 @@
 package org.example.data;
 
-import io.cucumber.core.internal.com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.models.UserModel;
 
 import java.io.File;
@@ -12,7 +12,7 @@ public class UserLoader {
         try {
             // Busca el archivo en src/test/resources/data/
             return mapper.readValue(
-                    new File("src/test/resources/data/" + fileName + ".json"),
+                    new File("src/main/java/org/example/data/" + fileName + ".json"),
                     UserModel.class
             );
         } catch (IOException e) {

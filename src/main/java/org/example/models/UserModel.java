@@ -1,6 +1,6 @@
 package org.example.models;
 
-import io.cucumber.core.internal.com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class UserModel {
     @JsonProperty("usuario")

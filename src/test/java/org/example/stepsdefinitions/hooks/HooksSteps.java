@@ -1,12 +1,12 @@
 package org.example.stepsdefinitions.hooks;
 
-import io.appium.java_client.AppiumDriver;
 import io.cucumber.java.After;
 import io.cucumber.java.Before;
 import net.serenitybdd.screenplay.abilities.BrowseTheWeb;
 import net.serenitybdd.screenplay.actors.OnStage;
 import net.serenitybdd.screenplay.actors.OnlineCast;
 import net.thucydides.core.webdriver.WebDriverFacade;
+import org.openqa.selenium.HasCapabilities;
 import org.openqa.selenium.WebDriver;
 
 public class HooksSteps {
@@ -17,12 +17,14 @@ public class HooksSteps {
         System.out.println("Inicializando el actor para pruebas móviles");
         OnStage.theActorCalled("Andres");
         System.out.println("Actor inicializado para pruebas móviles");
-        // ... dentro de prepareActor()
+        // Cambia la lógica de extracción para que sea compatible con cualquier driver
         WebDriver proxiedDriver = BrowseTheWeb.as(OnStage.theActorInTheSpotlight()).getDriver();
-        // LA SOLUCIÓN: Desempaquetar el driver real
-        AppiumDriver realDriver = (AppiumDriver) ((WebDriverFacade) proxiedDriver).getProxiedDriver();
+        WebDriver realDriver = ((WebDriverFacade) proxiedDriver).getProxiedDriver();
 
-        System.out.println("CAPABILITIES CARGADAS: " + realDriver.getCapabilities());
+        // Para imprimir capabilities sin que el cast falle:
+        if (realDriver instanceof HasCapabilities) {
+            System.out.println("CAPABILITIES CARGADAS: " + ((HasCapabilities) realDriver).getCapabilities());
+        }
     }
 
     @After
