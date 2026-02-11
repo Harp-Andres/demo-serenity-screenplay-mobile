@@ -6,6 +6,8 @@ import io.cucumber.java.es.Entonces;
 import net.serenitybdd.screenplay.actors.OnStage;
 import net.serenitybdd.screenplay.ensure.Ensure;
 import net.serenitybdd.screenplay.waits.WaitUntil;
+import org.example.data.UserLoader;
+import org.example.models.UserModel;
 import org.example.questions.IsElementVisible;
 import org.example.tasks.Login;
 import org.example.ui.LoginUI;
@@ -25,8 +27,9 @@ public class LoginSteps {
 
     @Cuando("el usuario ingresa las credenciales validas")
     public void ingresarCredencialesValidas() {
+        UserModel userData = UserLoader.fromJson("credencials");
         OnStage.theActorInTheSpotlight().attemptsTo(
-                Login.withCredentials("usuario@test.com", "12345")
+                Login.withCredentials(userData.getUser(), userData.getPassword())
         );
     }
 
