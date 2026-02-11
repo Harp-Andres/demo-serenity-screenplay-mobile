@@ -1,0 +1,12 @@
+//Muestra específicamente la actividad en primer plano.
+adb shell "dumpsys activity activities | grep ResumedActivity"
+
+//Otra forma de ver la actividad en primer plano.
+adb shell "dumpsys window | findstr mCurrentFocus"
+
+//Vista detallada del Stack
+adb shell dumpsys activity top | grep "ACTIVITY"
+
+
+
+

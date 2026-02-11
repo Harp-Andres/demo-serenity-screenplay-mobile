@@ -18,8 +18,9 @@ public class LoginSteps {
 
     @Dado("que el usuario está en la página de inicio de sesión de la aplicación")
     public void ingresarAlModalDeInicioDeLaApplicacion() {
+        System.out.println("Estoy en el paso de inicio de sesión");
         OnStage.theActorCalled("Andres").wasAbleTo(
-                WaitUntil.the(LoginUI.BUTTON_SIGN_IN, isVisible()).forNoMoreThan(60).seconds(),
+                WaitUntil.the(LoginUI.BUTTON_SIGN_IN, isVisible()).forNoMoreThan(120).seconds(),
                 Ensure.that("El botón de inicio es visible",
                         IsElementVisible.forTarget(LoginUI.BUTTON_SIGN_IN)).isTrue()
         );

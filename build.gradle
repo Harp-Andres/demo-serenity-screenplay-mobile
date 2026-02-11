@@ -46,6 +46,10 @@ java {
     }
 }
 
+processTestResources {
+    duplicatesStrategy = DuplicatesStrategy.WARN // Te avisa qué está duplicado para que lo limpies
+}
+
 defaultTasks('clean','test','aggregate')
 
 test {

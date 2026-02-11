@@ -1,0 +1,26 @@
+webdriver {
+    driver = appium
+}
+appium {
+    # URL base para Appium 2.x/3.x (normalmente sin /wd/hub)
+    hub = "http://127.0.0.1:4723"
+
+    # Capacidades estándar W3C
+    platformName = "Android"
+
+    # Capacidades específicas (Deben llevar el prefijo appium:)
+    "appium:automationName" = "UiAutomator2"
+    "appium:platformVersion" = "5.1.1"
+    "appium:deviceName" = "emulator-5554"
+    "appium:udid" = "emulator-5554"
+    "appium:appPackage" = "com.google.android.apps.safetyhub"
+    "appium:appActivity" = ".LauncherActivity"
+    "appium:noReset" = true
+    "appium:fullReset" = false
+    "appium:newCommandTimeout" = 120
+    "appium:unicodeKeyboard" = true
+    "appium:resetKeyboard" = true
+    "appium:adbExecTimeout" = 60000
+    "appium:isHeadless" = false
+    "appium:deviceReadyTimeout" = 60
+}
