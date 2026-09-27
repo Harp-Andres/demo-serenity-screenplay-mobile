@@ -1,30 +1,48 @@
 # demo-serenity-screenplay-mobile
 
-Teaching demo for **mobile automation with Serenity BDD and the Screenplay pattern** (Actor, Task, Question, UI targets) on **Appium**, with rich **Serenity reports** (`aggregate`). The app under test is **[TheApp](https://github.com/appium-pro/TheApp)** (`com.appiumpro.the_app`); demo login is `alice` / `mypassword`.
+Teaching demo for **Serenity BDD Screenplay + Appium**, with a **free personal device farm** (Docker / Kubernetes + virtual Android).
 
-Sibling specialties (do not mix):
-- [`appium-mobile-automation-framework`](https://github.com/Harp-Andres/appium-mobile-automation-framework) — **mature local / self-hosted** Appium runner + TheApp AUT
-- [`appium-mobile-cloud-automation-framework`](https://github.com/Harp-Andres/appium-mobile-cloud-automation-framework) — BrowserStack / AWS Device Farm
+That farm is the specialty of this repo:
 
-## Run
+| Sibling | Devices |
+| --- | --- |
+| [`appium-mobile-automation-framework`](https://github.com/Harp-Andres/appium-mobile-automation-framework) | Mature Windows **self-hosted** runner |
+| [`appium-mobile-cloud-automation-framework`](https://github.com/Harp-Andres/appium-mobile-cloud-automation-framework) | BrowserStack / AWS |
+| **This repo** | **Free farm**: Docker/K8s + emulator + Appium + Serenity |
+
+AUT: **[TheApp](https://github.com/appium-pro/TheApp)** — login `alice` / `mypassword`.
+
+## Free farm (Docker) — recommended
+
+Needs Linux + `/dev/kvm` + Docker.
 
 ```bash
-# Unit tests (no Appium / no device) — CI default
+./scripts/download-test-apps.sh
+./scripts/farm-up.sh          # budtmo emulator + Appium on :4723 (VNC :6080)
+./scripts/farm-run-e2e.sh     # Serenity e2e against the farm
+./scripts/farm-down.sh
+```
+
+Details: [`docs/FREE_DEVICE_FARM.md`](docs/FREE_DEVICE_FARM.md) · K8s manifests: `k8s/android-farm.yaml`
+
+## Other ways to run
+
+```bash
+# Unit tests (no device)
 ./gradlew test
 
-# Local E2E (Appium on :4723 + emulator/device)
-./scripts/download-test-apps.sh   # → apps/TheApp.apk (see serenity.conf)
+# Laptop Appium already on :4723
+./scripts/download-test-apps.sh
 ./gradlew e2e aggregate
 
-# Docker Appium (host still needs a device/emulator reachable from the container)
-docker compose up -d appium
-./gradlew e2e aggregate
-
-# BrowserStack (upload TheApp.apk first — see docs/TEST_APP_AND_FARMS.md)
-export BROWSERSTACK_USERNAME=...
-export BROWSERSTACK_ACCESS_KEY=...
-export BROWSERSTACK_APP_URL=bs://...
+# BrowserStack (optional paid farm)
 ./gradlew e2e -Dproperties=src/test/resources/serenity-browserstack.conf
 ```
 
-App download details and cloud profiles: [`docs/TEST_APP_AND_FARMS.md`](docs/TEST_APP_AND_FARMS.md).
+## Profiles
+
+| Conf | Hub | App path |
+| --- | --- | --- |
+| `serenity.conf` | host `127.0.0.1:4723` | `apps/TheApp.apk` on host |
+| `serenity-farm.conf` | Docker/K8s farm `:4723` | `/farm/apps/TheApp.apk` in container |
+| `serenity-browserstack.conf` | BrowserStack cloud | `bs://...` |

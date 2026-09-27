@@ -1,0 +1,96 @@
+# Free Kubernetes farm node (budtmo/docker-android = emulator + Appium).
+# Requires a Linux node with /dev/kvm.
+#
+# Prep on the node (or via DaemonSet/init): place TheApp.apk under /opt/serenity-farm/apps
+#   ./scripts/download-test-apps.sh && sudo mkdir -p /opt/serenity-farm/apps && sudo cp apps/TheApp.apk /opt/serenity-farm/apps/
+#
+#   kubectl apply -f k8s/android-farm.yaml
+#   kubectl -n serenity-farm port-forward svc/android-farm 4723:4723
+#   ./gradlew e2e -Dproperties=src/test/resources/serenity-farm.conf
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: serenity-farm
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: android-farm
+  namespace: serenity-farm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: android-farm
+  template:
+    metadata:
+      labels:
+        app: android-farm
+    spec:
+      containers:
+        - name: docker-android
+          image: budtmo/docker-android:emulator_11.0
+          securityContext:
+            privileged: true
+          env:
+            - name: EMULATOR_DEVICE
+              value: "Samsung Galaxy S10"
+            - name: WEB_VNC
+              value: "true"
+            - name: APPIUM
+              value: "true"
+            - name: APPIUM_ADDITIONAL_ARGS
+              value: "--allow-insecure=adb_shell"
+            - name: DATAPARTITION
+              value: "2g"
+          ports:
+            - name: appium
+              containerPort: 4723
+            - name: vnc
+              containerPort: 6080
+          volumeMounts:
+            - name: kvm
+              mountPath: /dev/kvm
+            - name: apps
+              mountPath: /farm/apps
+              readOnly: true
+          resources:
+            requests:
+              memory: "4Gi"
+              cpu: "2"
+            limits:
+              memory: "8Gi"
+              cpu: "4"
+          readinessProbe:
+            httpGet:
+              path: /status
+              port: appium
+            initialDelaySeconds: 120
+            periodSeconds: 15
+            failureThreshold: 40
+      volumes:
+        - name: kvm
+          hostPath:
+            path: /dev/kvm
+            type: CharDevice
+        - name: apps
+          hostPath:
+            path: /opt/serenity-farm/apps
+            type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: android-farm
+  namespace: serenity-farm
+spec:
+  selector:
+    app: android-farm
+  ports:
+    - name: appium
+      port: 4723
+      targetPort: appium
+    - name: vnc
+      port: 6080
+      targetPort: vnc

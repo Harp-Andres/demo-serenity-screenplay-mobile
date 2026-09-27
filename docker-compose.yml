@@ -1,28 +1,67 @@
-# Differential vs other mobile demos: Serenity talks to an Appium hub you control.
-# This is a starter "personal farm" node — attach real devices via USB on the host,
-# or point appium.hub in serenity.conf to a Device Farmer / Appium Grid later.
+# Free personal device farm for demo-serenity-screenplay-mobile
+# Stack: budtmo/docker-android (emulator + Appium) — 100% free / open source
 #
-# Usage:
+# Requirements (Linux host):
+#   - Docker + Compose
+#   - /dev/kvm (hardware virtualization)
+#   - ~4–6 GB RAM free per emulator node
+#
+# Quick start:
 #   ./scripts/download-test-apps.sh
-#   docker compose up -d appium
-#   # start an Android emulator on the host OR plug a device with adb devices
-#   ./gradlew e2e aggregate
+#   ./scripts/farm-up.sh
+#   ./scripts/farm-run-e2e.sh
+#   ./scripts/farm-down.sh
 #
-# Note: Emulators inside Docker/K8s are possible but heavy. Prefer:
-#   - host emulator + Appium in Docker with network_mode: host (Linux), or
-#   - BrowserStack/AWS for real multi-device coverage,
-#   - Device Farmer for a multi-phone USB farm.
+# VNC (see the emulator): http://localhost:6080
+# Appium hub:            http://localhost:4723
+
+name: serenity-free-farm
 
 services:
-  appium:
-    image: appium/appium:v2.11.2-p1
-    container_name: serenity-appium
-    ports:
-      - "4723:4723"
-    environment:
-      - APPIUM_ADDITIONAL_CLI_ARGS=--allow-insecure=adb_shell
-    # Linux: share host ADB devices
-    volumes:
-      - /dev/bus/usb:/dev/bus/usb
+  android-farm:
+    image: budtmo/docker-android:emulator_11.0
+    container_name: serenity-android-farm
     privileged: true
+    devices:
+      - /dev/kvm
+    ports:
+      - "4723:4723"   # Appium
+      - "6080:6080"   # noVNC
+      - "5555:5555"   # adb
+    environment:
+      EMULATOR_DEVICE: "Samsung Galaxy S10"
+      WEB_VNC: "true"
+      APPIUM: "true"
+      APPIUM_ADDITIONAL_ARGS: "--allow-insecure=adb_shell"
+      DATAPARTITION: "2g"
+    volumes:
+      - ./apps:/farm/apps:ro
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://127.0.0.1:4723/status || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 40
+      start_period: 120s
+    restart: unless-stopped
+
+  # Optional second virtual device (scale the free farm)
+  android-farm-2:
+    profiles: ["multi"]
+    image: budtmo/docker-android:emulator_12.0
+    container_name: serenity-android-farm-2
+    privileged: true
+    devices:
+      - /dev/kvm
+    ports:
+      - "4724:4723"
+      - "6081:6080"
+      - "5556:5555"
+    environment:
+      EMULATOR_DEVICE: "Samsung Galaxy S10"
+      WEB_VNC: "true"
+      APPIUM: "true"
+      APPIUM_ADDITIONAL_ARGS: "--allow-insecure=adb_shell"
+      DATAPARTITION: "2g"
+    volumes:
+      - ./apps:/farm/apps:ro
     restart: unless-stopped
