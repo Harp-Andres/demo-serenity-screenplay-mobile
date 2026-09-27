@@ -23,9 +23,21 @@ for i in $(seq 1 60); do
 done
 
 adb devices -l || true
+adb -s emulator-5554 wait-for-device shell getprop sys.boot_completed || true
 
-./gradlew --no-daemon e2e aggregate -Dproperties=src/test/resources/serenity.conf "$@"
+# Bound the Gradle/Appium run so the CI job cannot hang until the 60m timeout.
+set +e
+timeout 25m ./gradlew --no-daemon e2e aggregate \
+  -Dproperties=src/test/resources/serenity.conf \
+  -Dwebdriver.driver=appium \
+  -Dappium.hub=http://127.0.0.1:4723/ \
+  "$@"
+STATUS=$?
+set -e
 
 echo "Serenity: target/site/serenity/index.html"
 echo "Cucumber: target/cucumber-reports/cucumber.html"
-test -f target/site/serenity/summary.txt && cat target/site/serenity/summary.txt
+if [ -f target/site/serenity/summary.txt ]; then
+  cat target/site/serenity/summary.txt
+fi
+exit "$STATUS"
