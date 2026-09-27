@@ -63,3 +63,23 @@ Appium runs **inside** the container. The host folder `./apps` is mounted to `/f
 ## Local laptop without Docker farm
 
 Keep using `serenity.conf` + host Appium on `:4723` (unchanged).
+
+## Cloud CI — ephemeral AVD (GitHub Actions)
+
+GitHub-hosted runners boot a **throwaway Android emulator** with KVM via
+[`reactivecircus/android-emulator-runner`](https://github.com/ReactiveCircus/android-emulator-runner),
+then Appium + Serenity Cucumber (`scripts/ci-e2e-on-emulator.sh`).
+
+That is the path that publishes **device** reports to Pages. Docker/K8s above is the
+self-hosted / laptop farm specialty of this repo.
+
+## Kubernetes ephemeral Job
+
+One-shot device node (auto TTL cleanup):
+
+```bash
+kubectl apply -f k8s/android-farm.yaml          # namespace
+kubectl apply -f k8s/android-farm-ephemeral-job.yaml
+kubectl -n serenity-farm port-forward job/android-farm-e2e 4723:4723
+./gradlew e2e -Dproperties=src/test/resources/serenity-farm.conf
+```
