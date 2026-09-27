@@ -115,8 +115,9 @@ jobs:
             echo "- Artifact **gradle-test-report** / **junit-xml**"
           } >> "$GITHUB_STEP_SUMMARY"
 
-  # Optional mobile e2e: needs KVM + Docker (self-hosted / farm-capable runners).
-  # On github-hosted ubuntu-latest this job skips (no /dev/kvm) so required checks stay green.
+  # Optional mobile e2e (devices + Cucumber reports).
+  # GitHub-hosted runners often expose /dev/kvm but cannot boot nested Android emulators,
+  # so farm e2e is opt-in: self-hosted runner OR repo variable ENABLE_SERENITY_FARM_E2E=true.
   test-e2e:
     timeout-minutes: 45
     needs: install
@@ -124,15 +125,33 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Detect free-farm capability (KVM + Docker)
+      - name: Detect free-farm capability
         id: farm
+        env:
+          ENABLE_FARM: ${{ vars.ENABLE_SERENITY_FARM_E2E }}
+          RUNNER_ENV: ${{ runner.environment }}
         run: |
+          set -euo pipefail
+          WANT=false
+          if [[ "$RUNNER_ENV" == "self-hosted" ]]; then
+            WANT=true
+          fi
+          if [[ "${ENABLE_FARM:-}" == "true" ]]; then
+            WANT=true
+          fi
+          if [[ "$WANT" != "true" ]]; then
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping e2e on github-hosted (nested emulator unreliable)."
+            echo "Enable with self-hosted runner or repo variable ENABLE_SERENITY_FARM_E2E=true."
+            echo "Local demo: ./scripts/farm-run-e2e.sh && ./scripts/serve-reports.sh"
+            exit 0
+          fi
           if [[ -e /dev/kvm ]] && command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
             echo "available=true" >> "$GITHUB_OUTPUT"
-            echo "Free farm capable runner detected"
+            echo "Free farm enabled on this runner"
           else
             echo "available=false" >> "$GITHUB_OUTPUT"
-            echo "Skipping e2e: no KVM/Docker farm on this runner (expected on GitHub-hosted)."
+            echo "Farm requested but /dev/kvm or Docker missing — skipping."
           fi
 
       - name: Set up JDK 21
@@ -152,9 +171,6 @@ jobs:
         run: |
           ./scripts/farm-up.sh
           ./gradlew --no-daemon e2e aggregate -Dproperties=src/test/resources/serenity-farm.conf
-        env:
-          # Still emit Cucumber/Serenity HTML when a scenario fails.
-          ORG_GRADLE_PROJECT_e2eIgnoreFailures: 'false'
 
       - name: Upload Serenity HTML report (e2e / devices)
         if: always() && steps.farm.outputs.available == 'true'
@@ -190,11 +206,12 @@ jobs:
             echo "## Mobile e2e (Cucumber + Serenity Screenplay)"
             echo ""
             if [ "${{ steps.farm.outputs.available }}" != "true" ]; then
-              echo "Skipped on this runner (no KVM/Docker). For device counts in Serenity Environment:"
+              echo "Skipped (opt-in farm). For **device counts** in Serenity Environment:"
               echo "\`\`\`bash"
               echo "./scripts/farm-run-e2e.sh"
               echo "./scripts/serve-reports.sh"
               echo "\`\`\`"
+              echo "Or set repo variable \`ENABLE_SERENITY_FARM_E2E=true\` on a farm-capable runner."
             else
               if [ -f target/site/serenity/summary.txt ]; then
                 echo '```'
