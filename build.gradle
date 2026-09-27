@@ -8,7 +8,6 @@ repositories {
 }
 
 ext {
-    // Definición de versiones para las dependencias
     serenityVersion = '5.1.0'
     junit5Version = '6.1.0-M1'
     log4jVersion = '2.25.3'
@@ -18,27 +17,26 @@ ext {
 }
 
 dependencies {
-    // Serenity Core & Mobile
     implementation "net.serenity-bdd:serenity-core:${serenityVersion}"
     implementation "net.serenity-bdd:serenity-screenplay:${serenityVersion}"
     implementation "net.serenity-bdd:serenity-screenplay-webdriver:${serenityVersion}"
     implementation "net.serenity-bdd:serenity-ensure:${serenityVersion}"
     testImplementation("net.serenity-bdd:serenity-junit5:${serenityJunit5Version}")
     implementation "io.appium:java-client:${appiumVersion}"
-    // Integración Junit5 + Cucumber
     testImplementation "net.serenity-bdd:serenity-cucumber:${serenityVersion}"
     testImplementation("org.junit.jupiter:junit-jupiter-engine:${junit5Version}")
     testImplementation("io.cucumber:cucumber-junit-platform-engine:7.34.2")
     testImplementation("org.junit.platform:junit-platform-suite-engine:${junit5Version}")
-    // Utilidades y Logs
     implementation "com.google.guava:guava:${guavaVersion}"
+    implementation "org.apache.logging.log4j:log4j-api:${log4jVersion}"
     implementation "org.apache.logging.log4j:log4j-core:${log4jVersion}"
-    testImplementation "org.slf4j:slf4j-simple:2.0.17"
+    implementation "org.apache.logging.log4j:log4j-slf4j2-impl:${log4jVersion}"
+    implementation "org.slf4j:slf4j-api:2.0.17"
 }
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(25)
+        languageVersion = JavaLanguageVersion.of(21)
     }
 }
 
@@ -51,23 +49,34 @@ sourceSets {
 }
 
 processTestResources {
-    duplicatesStrategy = DuplicatesStrategy.WARN // Te avisa qué está duplicado para que lo limpies
+    duplicatesStrategy = DuplicatesStrategy.WARN
 }
 
-defaultTasks('clean','test','aggregate')
+defaultTasks('clean', 'test', 'aggregate')
 
 test {
     useJUnitPlatform()
+    filter {
+        includeTestsMatching 'com.harp.demo.screenplay.unit.*'
+    }
     systemProperty "file.encoding", "UTF-8"
-    // Variables para Appium / CI / ambientes
     systemProperties System.getProperties() as Map<String, ? extends Object>
 
     testLogging {
         events "passed", "skipped", "failed"
         showStandardStreams = true
     }
+}
 
-    // Obligatorio para Serenity
+tasks.register('e2e', Test) {
+    group = 'verification'
+    description = 'Runs Cucumber mobile E2E scenarios (requires Appium + device/emulator).'
+    useJUnitPlatform()
+    filter {
+        includeTestsMatching 'com.harp.demo.screenplay.runners.*'
+    }
+    systemProperty "file.encoding", "UTF-8"
+    systemProperties System.getProperties() as Map<String, ? extends Object>
     finalizedBy aggregate
 }
 
@@ -75,6 +84,6 @@ tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }
 
-serenity{
+serenity {
     reports = ['single-page-html']
 }
