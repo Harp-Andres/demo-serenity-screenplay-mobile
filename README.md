@@ -23,6 +23,20 @@ On every push/PR (same shape as [mi-portafolio](https://github.com/Harp-Andres/m
 | `test-e2e` | Opt-in free farm e2e (self-hosted **or** repo var `ENABLE_SERENITY_FARM_E2E=true`); uploads **serenity-report-e2e** + **cucumber-reports**. Skips on GitHub-hosted (nested emulator unreliable). |
 | `build` | Assembles compiled classes |
 | `notify` | Gates the workflow green/red (required checks: lint / test-unit / build / notify) |
+| `publish-report` | On push to `main` only: publishes Serenity HTML to **GitHub Pages** |
+
+### Cómo ver el reporte (estilo Azure: en el run + en la web)
+
+| Dónde | Qué ves | Cuándo |
+| --- | --- | --- |
+| **Mismo Action → Summary** | Tabla Serenity (scenarios / passed / failed) en el Job Summary del run | Cada push/PR |
+| **Mismo Action → Checks** | Resultados JUnit anotados (`Unit tests (JUnit)`), similar a la pestaña Tests de Azure | Cada push/PR |
+| **Mismo Action → Artifacts** | ZIP HTML completo (`serenity-report-unit`) | Cada push/PR (éxito o fallo) |
+| **GitHub Pages (web)** | HTML Serenity navegable en el browser | Tras CI verde en `main` |
+
+**Live:** https://harp-andres.github.io/demo-serenity-screenplay-mobile/
+
+En PRs: Summary + Checks + Artifacts. Pages se actualiza al mergear a `main`.
 
 `main` is protected like mi-portafolio: required status checks (strict), dismiss stale reviews, conversation resolution, enforce admins, no force-push/delete.
 

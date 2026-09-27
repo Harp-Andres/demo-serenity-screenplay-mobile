@@ -7,6 +7,14 @@ on:
     branches: [main, develop, 'refactor/**', 'fix/**']
   workflow_dispatch:
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+  actions: read
+  checks: write
+  pull-requests: write
+
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -98,21 +106,62 @@ jobs:
           retention-days: 14
           if-no-files-found: warn
 
-      - name: Job summary
+      # Azure-style: test results visible inside the same workflow run (Checks / Annotations).
+      - name: Publish JUnit results in workflow (Checks)
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: Unit tests (JUnit)
+          path: build/test-results/test/TEST-*.xml
+          reporter: java-junit
+          fail-on-error: false
+          list-suites: all
+          list-tests: all
+
+      - name: Job summary (in-run report, Azure-style Summary)
         if: always()
         run: |
           {
-            echo "## Unit tests + Serenity report"
+            echo "## Unit tests + Serenity report (same Action)"
             echo ""
-            echo "Unit tests use SerenityJUnit5 (no Appium). **Devices appear only in the e2e / farm report.**"
+            echo "| View | Where |"
+            echo "| --- | --- |"
+            echo "| **This run — Summary** | table below (this page) |"
+            echo "| **This run — Checks** | check **Unit tests (JUnit)** on the PR / commit |"
+            echo "| **This run — Artifacts** | download **serenity-report-unit** (full HTML) |"
+            echo "| **Live web (main)** | https://harp-andres.github.io/demo-serenity-screenplay-mobile/ |"
+            echo ""
+            echo "Unit tests use SerenityJUnit5 (no Appium). **Devices** only after farm e2e."
             echo ""
             if [ -f target/site/serenity/summary.txt ]; then
+              # Parse Serenity summary into a markdown table for the workflow UI.
+              scen=$(sed -n 's/^Number of scenarios:[[:space:]]*//p' target/site/serenity/summary.txt | head -1)
+              cases=$(sed -n 's/^Number of test cases:[[:space:]]*//p' target/site/serenity/summary.txt | head -1)
+              passed=$(sed -n 's/^Passed:[[:space:]]*//p' target/site/serenity/summary.txt | head -1)
+              failed=$(sed -n 's/^Failed:[[:space:]]*//p' target/site/serenity/summary.txt | head -1)
+              errors=$(sed -n 's/^Failed with errors:[[:space:]]*//p' target/site/serenity/summary.txt | head -1)
+              echo "### Serenity aggregate"
+              echo ""
+              echo "| Metric | Count |"
+              echo "| --- | ---: |"
+              echo "| Scenarios | ${scen:-?} |"
+              echo "| Test cases | ${cases:-?} |"
+              echo "| Passed | ${passed:-?} |"
+              echo "| Failed | ${failed:-?} |"
+              echo "| Failed with errors | ${errors:-?} |"
+              echo ""
+              echo "<details><summary>Raw summary.txt</summary>"
+              echo ""
               echo '```'
               cat target/site/serenity/summary.txt
               echo '```'
+              echo ""
+              echo "</details>"
+            else
+              echo "_Serenity summary.txt not found._"
             fi
-            echo "- Artifact **serenity-report-unit** → open \`index.html\` via a local HTTP server (see \`scripts/serve-reports.sh\`)."
-            echo "- Artifact **gradle-test-report** / **junit-xml**"
+            echo ""
+            echo "Full interactive Serenity HTML is in artifact **serenity-report-unit** (or Pages after merge to \`main\`)."
           } >> "$GITHUB_STEP_SUMMARY"
 
   # Optional mobile e2e (devices + Cucumber reports).
@@ -195,11 +244,26 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: e2e-junit-xml
-          path: build/test-results/e2e/
+          path: |
+            build/test-results/e2e/
+            target/cucumber-reports/cucumber.xml
           retention-days: 14
           if-no-files-found: warn
 
-      - name: Job summary
+      - name: Publish e2e / Cucumber results in workflow (Checks)
+        if: always() && steps.farm.outputs.available == 'true'
+        uses: dorny/test-reporter@v1
+        with:
+          name: E2E Cucumber (JUnit)
+          path: |
+            build/test-results/e2e/TEST-*.xml
+            target/cucumber-reports/cucumber.xml
+          reporter: java-junit
+          fail-on-error: false
+          list-suites: all
+          list-tests: all
+
+      - name: Job summary (in-run report)
         if: always()
         run: |
           {
@@ -213,6 +277,11 @@ jobs:
               echo "\`\`\`"
               echo "Or set repo variable \`ENABLE_SERENITY_FARM_E2E=true\` on a farm-capable runner."
             else
+              echo "| View | Where |"
+              echo "| --- | --- |"
+              echo "| **This run — Checks** | **E2E Cucumber (JUnit)** |"
+              echo "| **This run — Artifacts** | **serenity-report-e2e**, **cucumber-reports** |"
+              echo ""
               if [ -f target/site/serenity/summary.txt ]; then
                 echo '```'
                 cat target/site/serenity/summary.txt
@@ -267,3 +336,37 @@ jobs:
             echo "❌ Lint, tests or build FAILED — review logs and artifacts."
             exit 1
           fi
+
+  # Publish Serenity HTML to GitHub Pages after green CI on main (viewable in the browser).
+  publish-report:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [notify, test-unit]
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Download Serenity unit report artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: serenity-report-unit
+          path: _site
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Job summary
+        run: |
+          {
+            echo "## Live Serenity report (GitHub Pages)"
+            echo ""
+            echo "Open: **https://harp-andres.github.io/demo-serenity-screenplay-mobile/**"
+            echo ""
+            echo "Page URL from deploy: ${{ steps.deployment.outputs.page_url }}"
+          } >> "$GITHUB_STEP_SUMMARY"
