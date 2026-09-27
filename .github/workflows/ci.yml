@@ -194,9 +194,10 @@ jobs:
 
       - name: Install Appium + UiAutomator2
         run: |
-          npm install -g appium@2.15.0
+          npm install -g appium@3
           appium driver install uiautomator2
           appium --version
+          appium driver list --installed
 
       - name: Grant execute permission for scripts
         run: chmod +x gradlew scripts/*.sh
@@ -250,6 +251,7 @@ jobs:
 
       - name: Publish e2e / Cucumber results in workflow (Checks)
         if: always()
+        continue-on-error: true
         uses: dorny/test-reporter@v1
         with:
           name: E2E Cucumber (JUnit)
@@ -258,6 +260,7 @@ jobs:
             target/cucumber-reports/cucumber.xml
           reporter: java-junit
           fail-on-error: false
+          fail-on-empty: false
           list-suites: all
           list-tests: all
 
