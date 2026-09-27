@@ -167,7 +167,8 @@ jobs:
   # Cloud ephemeral Android device (KVM AVD) + Appium + Serenity Cucumber e2e.
   # Local alternative: Docker/K8s farm via ./scripts/farm-run-e2e.sh (budtmo/docker-android).
   test-e2e:
-    timeout-minutes: 35
+    # Suite ~10–12m; hang-failsafe so notify is not blocked for ~35m.
+    timeout-minutes: 25
     needs: install
     runs-on: ubuntu-latest
     steps:
@@ -216,20 +217,24 @@ jobs:
           disable-animations: true
           emulator-options: -no-snapshot -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           # android-emulator-runner invokes /bin/sh (no bash pipefail).
+          # After a green suite the action hangs on teardown unless crashpad_handler
+          # (emulator crash reporter) is killed — see ReactiveCircus/android-emulator-runner#385.
           script: |
+            cleanup() {
+              kill "$(cat appium.pid 2>/dev/null)" 2>/dev/null || true
+              kill -9 "$(cat appium.pid 2>/dev/null)" 2>/dev/null || true
+              timeout 5 adb -s emulator-5554 emu kill >/dev/null 2>&1 || true
+              pkill -TERM -f '[c]rashpad_handler' 2>/dev/null || true
+              sleep 2
+              pkill -KILL -f '[c]rashpad_handler' 2>/dev/null || true
+              pkill -KILL -f '[q]emu-system' 2>/dev/null || true
+              pkill -KILL -f '[e]mulator -avd' 2>/dev/null || true
+            }
             appium --address 127.0.0.1 --port 4723 --base-path / --log appium-ci.log &
             echo $! > appium.pid
             bash ./scripts/ci-e2e-on-emulator.sh
             status=$?
-            kill "$(cat appium.pid)" 2>/dev/null || true
-            sleep 1
-            kill -9 "$(cat appium.pid)" 2>/dev/null || true
-            # Force-stop qemu so reactivecircus teardown does not hang ~30m after a green suite.
-            adb -s emulator-5554 emu kill >/dev/null 2>&1 || true
-            sleep 2
-            pkill -9 -f 'qemu-system' 2>/dev/null || true
-            pkill -9 -f 'emulator -avd' 2>/dev/null || true
-            pkill -9 -f 'emulator64-' 2>/dev/null || true
+            cleanup
             exit $status
 
       - name: Upload Serenity HTML report (e2e / devices)
