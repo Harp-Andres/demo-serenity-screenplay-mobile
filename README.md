@@ -12,6 +12,21 @@ That farm is the specialty of this repo:
 
 AUT: **[TheApp](https://github.com/appium-pro/TheApp)** — login `alice` / `mypassword`.
 
+## CI (GitHub Actions)
+
+On every push/PR (same shape as [mi-portafolio](https://github.com/Harp-Andres/mi-portafolio)):
+
+| Job | What it does |
+| --- | --- |
+| `lint` | Compiles main + test sources (Java 21) |
+| `test-unit` | `./gradlew clean test aggregate` + uploads **Serenity**, Gradle HTML, and JUnit XML artifacts |
+| `build` | Assembles compiled classes |
+| `notify` | Gates the workflow green/red |
+
+Mobile e2e stays local/farm (`./scripts/farm-run-e2e.sh`) — GitHub-hosted runners have no KVM/emulator farm.
+
+`main` is protected like mi-portafolio: required status checks (strict), dismiss stale reviews, conversation resolution, enforce admins, no force-push/delete.
+
 ## Free farm (Docker) — recommended
 
 Needs Linux + `/dev/kvm` + Docker.
