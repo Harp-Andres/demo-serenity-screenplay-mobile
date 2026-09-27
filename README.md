@@ -3,7 +3,7 @@
 Teaching demo for **mobile automation with Serenity BDD and the Screenplay pattern** (Actor, Task, Question, UI targets) on **Appium**, with rich **Serenity reports** (`aggregate`). The app under test is **[TheApp](https://github.com/appium-pro/TheApp)** (`com.appiumpro.the_app`); demo login is `alice` / `mypassword`.
 
 Sibling specialties (do not mix):
-- [`appium-mobile-automation-framework`](https://github.com/Harp-Andres/appium-mobile-automation-framework) — **mature local / self-hosted** Appium + ExpandTesting (leave that flow alone)
+- [`appium-mobile-automation-framework`](https://github.com/Harp-Andres/appium-mobile-automation-framework) — **mature local / self-hosted** Appium runner + TheApp AUT
 - [`appium-mobile-cloud-automation-framework`](https://github.com/Harp-Andres/appium-mobile-cloud-automation-framework) — BrowserStack / AWS Device Farm
 
 ## Run

@@ -26,7 +26,7 @@ Cloud profiles are **additive**; local `serenity.conf` stays the default so lapt
 
 | Repo | Focus |
 | --- | --- |
-| `appium-mobile-automation-framework` | Mature **self-hosted/local** ExpandTesting runs (do not swap its default AUT) |
+| `appium-mobile-automation-framework` | Mature **self-hosted/local** Appium runner + TheApp (keep runner labels / Appium / mvn -Pbdd) |
 | `appium-mobile-cloud-automation-framework` | BrowserStack, AWS Device Farm, farm wiring |
 | **This repo** | Serenity Screenplay + reporting; optional Docker Appium hub you control |
 
