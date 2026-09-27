@@ -1,6 +1,6 @@
 plugins {
     id 'java'
-    id 'net.serenity-bdd.serenity-gradle-plugin' version '5.1.0'
+    id 'net.serenity-bdd.serenity-gradle-plugin' version '5.2.1'
 }
 
 repositories {
@@ -8,12 +8,13 @@ repositories {
 }
 
 ext {
-    serenityVersion = '5.1.0'
+    // Keep Serenity modules aligned (mixed 5.1/5.2 caused confusing Appium wiring).
+    serenityVersion = '5.2.1'
     junit5Version = '6.1.0-M1'
     log4jVersion = '2.25.3'
     guavaVersion = '33.5.0-jre'
     serenityJunit5Version = '5.2.1'
-    appiumVersion = '10.0.0'
+    appiumVersion = '9.4.0'
 }
 
 dependencies {

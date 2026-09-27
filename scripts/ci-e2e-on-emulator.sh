@@ -31,6 +31,10 @@ timeout 25m ./gradlew --no-daemon e2e aggregate \
   -Dproperties=src/test/resources/serenity.conf \
   -Dwebdriver.driver=appium \
   -Dappium.hub=http://127.0.0.1:4723/ \
+  -Dappium.platformName=Android \
+  -Dappium.automationName=UiAutomator2 \
+  -Dappium.udid=emulator-5554 \
+  -Dappium.deviceName="Android Emulator" \
   "$@"
 STATUS=$?
 set -e
