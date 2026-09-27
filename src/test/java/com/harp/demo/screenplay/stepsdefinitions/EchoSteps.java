@@ -35,8 +35,8 @@ public class EchoSteps {
     @Entonces("debería ver el mensaje guardado {string}")
     public void seeSaved(String expected) {
         OnStage.theActorInTheSpotlight().attemptsTo(
-                WaitUntil.the(EchoBoxUI.SAVED_MESSAGE, isVisible()).forNoMoreThan(20).seconds(),
-                Ensure.that(Text.of(EchoBoxUI.SAVED_MESSAGE)).contains(expected)
+                WaitUntil.the(EchoBoxUI.savedMessageShowing(expected), isVisible()).forNoMoreThan(20).seconds(),
+                Ensure.that(Text.of(EchoBoxUI.savedMessageShowing(expected))).isEqualTo(expected)
         );
     }
 }

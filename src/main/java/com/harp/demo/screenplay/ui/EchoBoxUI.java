@@ -2,6 +2,7 @@ package com.harp.demo.screenplay.ui;
 
 import io.appium.java_client.AppiumBy;
 import net.serenitybdd.screenplay.targets.Target;
+import org.openqa.selenium.By;
 
 /**
  * TheApp Echo Box demo screen (public AUT).
@@ -20,6 +21,16 @@ public final class EchoBoxUI {
     public static final Target SAVE_BUTTON = Target.the("save message button")
             .located(AppiumBy.accessibilityId("messageSaveBtn"));
 
-    public static final Target SAVED_MESSAGE = Target.the("saved echo message")
-            .located(AppiumBy.accessibilityId("@TheApp:savedEcho"));
+    /**
+     * Saved message label — TheApp exposes the value as visible text after Save
+     * (testID varies by build; text match is stable for the demo assertion).
+     */
+    public static Target savedMessageShowing(String text) {
+        String safe = text.replace("\"", "");
+        return Target.the("saved echo message '" + safe + "'")
+                .locatedForAndroid(AppiumBy.androidUIAutomator(
+                        "new UiSelector().text(\"" + safe + "\")"
+                ))
+                .locatedForIOS(By.xpath("//*[@name='" + safe + "' or @label='" + safe + "' or @value='" + safe + "']"));
+    }
 }

@@ -30,7 +30,7 @@ public class EchoMessage implements Task {
                 WaitUntil.the(EchoBoxUI.MESSAGE_INPUT, isVisible()).forNoMoreThan(30).seconds(),
                 EnterText.into(EchoBoxUI.MESSAGE_INPUT, message),
                 Click.on(EchoBoxUI.SAVE_BUTTON),
-                WaitUntil.the(EchoBoxUI.SAVED_MESSAGE, isVisible()).forNoMoreThan(20).seconds()
+                WaitUntil.the(EchoBoxUI.savedMessageShowing(message), isVisible()).forNoMoreThan(20).seconds()
         );
     }
 }
