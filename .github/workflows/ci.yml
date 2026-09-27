@@ -7,6 +7,12 @@ on:
     branches: [main, develop, 'refactor/**', 'fix/**']
   workflow_dispatch:
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+  actions: read
+
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -111,7 +117,8 @@ jobs:
               cat target/site/serenity/summary.txt
               echo '```'
             fi
-            echo "- Artifact **serenity-report-unit** → open \`index.html\` via a local HTTP server (see \`scripts/serve-reports.sh\`)."
+            echo "- Artifact **serenity-report-unit** (download) or, after merge to \`main\`, live site:"
+            echo "  https://harp-andres.github.io/demo-serenity-screenplay-mobile/"
             echo "- Artifact **gradle-test-report** / **junit-xml**"
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -267,3 +274,37 @@ jobs:
             echo "❌ Lint, tests or build FAILED — review logs and artifacts."
             exit 1
           fi
+
+  # Publish Serenity HTML to GitHub Pages after green CI on main (viewable in the browser).
+  publish-report:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [notify, test-unit]
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Download Serenity unit report artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: serenity-report-unit
+          path: _site
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Job summary
+        run: |
+          {
+            echo "## Live Serenity report (GitHub Pages)"
+            echo ""
+            echo "Open: **https://harp-andres.github.io/demo-serenity-screenplay-mobile/**"
+            echo ""
+            echo "Page URL from deploy: ${{ steps.deployment.outputs.page_url }}"
+          } >> "$GITHUB_STEP_SUMMARY"

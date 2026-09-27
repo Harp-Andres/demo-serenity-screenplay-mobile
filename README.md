@@ -23,6 +23,15 @@ On every push/PR (same shape as [mi-portafolio](https://github.com/Harp-Andres/m
 | `test-e2e` | Opt-in free farm e2e (self-hosted **or** repo var `ENABLE_SERENITY_FARM_E2E=true`); uploads **serenity-report-e2e** + **cucumber-reports**. Skips on GitHub-hosted (nested emulator unreliable). |
 | `build` | Assembles compiled classes |
 | `notify` | Gates the workflow green/red (required checks: lint / test-unit / build / notify) |
+| `publish-report` | On push to `main` only: publishes Serenity HTML to **GitHub Pages** |
+
+### Ver el reporte en la web (después del Action)
+
+Tras un CI verde en `main`, el reporte queda publicado aquí:
+
+**https://harp-andres.github.io/demo-serenity-screenplay-mobile/**
+
+También: pestaña **Actions** → run → artifact `serenity-report-unit` (descarga ZIP). En PRs solo hay artifact; Pages se actualiza al mergear a `main`.
 
 `main` is protected like mi-portafolio: required status checks (strict), dismiss stale reviews, conversation resolution, enforce admins, no force-push/delete.
 
