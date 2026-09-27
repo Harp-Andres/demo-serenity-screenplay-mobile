@@ -1,12 +1,20 @@
 package com.harp.demo.screenplay.tasks;
 
-import net.serenitybdd.screenplay.Performable;
-import net.serenitybdd.screenplay.Task;
-import net.serenitybdd.screenplay.Actor;
-import net.serenitybdd.screenplay.actions.Click;
+import com.harp.demo.screenplay.interactions.EnterText;
+import com.harp.demo.screenplay.ui.HomePageUI;
 import com.harp.demo.screenplay.ui.LoginUI;
+import net.serenitybdd.screenplay.Actor;
+import net.serenitybdd.screenplay.Task;
+import net.serenitybdd.screenplay.actions.Click;
+import net.serenitybdd.screenplay.waits.WaitUntil;
 
+import static net.serenitybdd.screenplay.matchers.WebElementStateMatchers.isVisible;
+
+/**
+ * Navigate to TheApp Login Screen and submit credentials.
+ */
 public class Login implements Task {
+
     private final String user;
     private final String pass;
 
@@ -21,8 +29,13 @@ public class Login implements Task {
 
     @Override
     public <T extends Actor> void performAs(T actor) {
-        actor.attemptsTo(Click.on(LoginUI.BUTTON_SIGN_IN));
-
-
+        actor.attemptsTo(
+                WaitUntil.the(HomePageUI.LOGIN_SCREEN_ENTRY, isVisible()).forNoMoreThan(30).seconds(),
+                Click.on(HomePageUI.LOGIN_SCREEN_ENTRY),
+                WaitUntil.the(LoginUI.USERNAME, isVisible()).forNoMoreThan(20).seconds(),
+                EnterText.into(LoginUI.USERNAME, user),
+                EnterText.into(LoginUI.PASSWORD, pass),
+                Click.on(LoginUI.BUTTON_SIGN_IN)
+        );
     }
 }

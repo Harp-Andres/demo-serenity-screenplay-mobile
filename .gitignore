@@ -45,3 +45,10 @@ bin/
 
 ## Serenity ##
 /target/*
+
+## Downloaded demo apps (use ./scripts/download-test-apps.sh)
+/apps/
+*.apk
+*.ipa
+*.app.zip
+TheApp.app/

@@ -1,68 +1,56 @@
-# Serenity BDD Screenplay — Mobile teaching demo
+# demo-serenity-screenplay-mobile
 
-Educational sample project for **mobile test automation** using **Java**, **Serenity BDD**, the **Screenplay pattern**, **Cucumber**, and **Appium**. It shows how to structure actors, tasks, questions, UI targets, and hooks for Android/iOS without coupling tests to `org.example`-style placeholders.
+Educational demo for **mobile test automation** with **Java**, **Serenity BDD**, the **Screenplay pattern**, **Cucumber**, and **Appium**.
+
+Specialty vs sibling repos:
+
+| Repo | Focus |
+| --- | --- |
+| **This one** | Serenity Screenplay + reporting (`aggregate`) |
+| `appium-mobile-automation-framework` | Local Appium/Cucumber (keep local green) |
+| `appium-mobile-cloud-automation-framework` | BrowserStack + AWS Device Farm |
+
+## App under test (free)
+
+**[TheApp](https://github.com/appium-pro/TheApp)** — APK + iOS Simulator zip, accessibility IDs built for Appium.
+
+```bash
+./scripts/download-test-apps.sh
+```
+
+Demo login: `alice` / `mypassword`  
+Details & farm strategy: [`docs/TEST_APP_AND_FARMS.md`](docs/TEST_APP_AND_FARMS.md)
 
 ## Stack
 
-| Layer | Technology |
-|-------|------------|
+| Layer | Choice |
+| --- | --- |
 | Language | Java 21 |
-| Build | Gradle (wrapper) |
-| BDD / reporting | Serenity BDD 5.x |
-| Pattern | Screenplay (actors, tasks, questions, interactions) |
-| Scenarios | Cucumber (Spanish features) |
+| BDD UI | Cucumber + Serenity Screenplay |
 | Driver | Appium Java Client |
-| Logging | SLF4J → Log4j2 (`src/test/resources/log4j2.xml`) |
-
-## Project layout
-
-```
-src/main/java/com/harp/demo/screenplay/
-  abilities/       # Custom abilities (e.g. mobile)
-  appiumserver/    # Optional local Appium lifecycle helpers
-  interactions/    # Low-level Screenplay interactions
-  models/          # Plain domain models (e.g. User)
-  questions/       # Screenplay questions
-  tasks/           # Business-facing tasks
-  ui/              # Targets (page/screen objects)
-  utils/           # Pure helpers (unit-tested)
-src/test/java/com/harp/demo/screenplay/
-  runners/         # JUnit Platform Cucumber suites
-  stepsdefinitions/# Step definitions + hooks
-  unit/            # Fast unit tests (no device required)
-src/test/resources/
-  features/        # Gherkin features
-  serenity.conf    # Appium capabilities
-  log4j2.xml
-```
-
-## Prerequisites
-
-- JDK 21+
-- Android SDK / emulator or iOS simulator (for E2E only)
-- Appium 2.x server reachable at `http://127.0.0.1:4723` (see `serenity.conf`)
+| Logging | SLF4J → Log4j2 |
 
 ## Commands
 
 ```bash
-# Unit tests (default `test` task — no Appium required)
+# Unit tests (no Appium / no device) — CI default
 ./gradlew test
 
-# Mobile E2E (Cucumber + Serenity; requires device + Appium)
+# Local E2E (Appium on :4723 + emulator/device + TheApp.apk)
+./scripts/download-test-apps.sh
 ./gradlew e2e aggregate
+
+# Appium via Docker (host must expose a device/emulator to the container)
+docker compose up -d appium
+./gradlew e2e aggregate
+
+# BrowserStack (after uploading TheApp.apk — see docs)
+export BROWSERSTACK_USERNAME=...
+export BROWSERSTACK_ACCESS_KEY=...
+export BROWSERSTACK_APP_URL=bs://...
+./gradlew e2e -Dproperties=src/test/resources/serenity-browserstack.conf
 ```
 
-## Learning path
+## Why Docker/K8s here?
 
-1. Read `login.feature` and trace glue in `LoginSteps`.
-2. Follow the Screenplay flow: **Task** (`Login`) → **UI target** (`LoginUI`) → **Question** (`IsElementVisible`).
-3. Inspect `HooksSteps` for actor lifecycle and logging.
-4. Extend `utils.Util` with small pure functions and cover them under `unit/`.
-
-## Suggested GitHub repository name
-
-`demo-serenity-screenplay-mobile`
-
-## License
-
-MIT (see repository settings).
+Other repos already cover local Appium and commercial farms. This repo’s differentiator is **Serenity Screenplay + a hub you control** (Docker Appium now; Device Farmer / Appium Grid later for a personal multi-device farm). Kubernetes can schedule Appium workers, but phones still need USB/network attachment or a cloud farm behind the hub.

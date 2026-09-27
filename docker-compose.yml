@@ -1,0 +1,28 @@
+# Differential vs other mobile demos: Serenity talks to an Appium hub you control.
+# This is a starter "personal farm" node — attach real devices via USB on the host,
+# or point appium.hub in serenity.conf to a Device Farmer / Appium Grid later.
+#
+# Usage:
+#   ./scripts/download-test-apps.sh
+#   docker compose up -d appium
+#   # start an Android emulator on the host OR plug a device with adb devices
+#   ./gradlew e2e aggregate
+#
+# Note: Emulators inside Docker/K8s are possible but heavy. Prefer:
+#   - host emulator + Appium in Docker with network_mode: host (Linux), or
+#   - BrowserStack/AWS for real multi-device coverage,
+#   - Device Farmer for a multi-phone USB farm.
+
+services:
+  appium:
+    image: appium/appium:v2.11.2-p1
+    container_name: serenity-appium
+    ports:
+      - "4723:4723"
+    environment:
+      - APPIUM_ADDITIONAL_CLI_ARGS=--allow-insecure=adb_shell
+    # Linux: share host ADB devices
+    volumes:
+      - /dev/bus/usb:/dev/bus/usb
+    privileged: true
+    restart: unless-stopped
