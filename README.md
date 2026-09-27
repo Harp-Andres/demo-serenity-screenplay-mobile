@@ -19,13 +19,37 @@ On every push/PR (same shape as [mi-portafolio](https://github.com/Harp-Andres/m
 | Job | What it does |
 | --- | --- |
 | `lint` | Compiles main + test sources (Java 21) |
-| `test-unit` | `./gradlew clean test aggregate` + uploads **Serenity**, Gradle HTML, and JUnit XML artifacts |
+| `test-unit` | `./gradlew clean test aggregate` + uploads **serenity-report-unit**, Gradle HTML, JUnit XML (**always**, even on failure) |
+| `test-e2e` | Opt-in free farm e2e (self-hosted **or** repo var `ENABLE_SERENITY_FARM_E2E=true`); uploads **serenity-report-e2e** + **cucumber-reports**. Skips on GitHub-hosted (nested emulator unreliable). |
 | `build` | Assembles compiled classes |
-| `notify` | Gates the workflow green/red |
-
-Mobile e2e stays local/farm (`./scripts/farm-run-e2e.sh`) — GitHub-hosted runners have no KVM/emulator farm.
+| `notify` | Gates the workflow green/red (required checks: lint / test-unit / build / notify) |
 
 `main` is protected like mi-portafolio: required status checks (strict), dismiss stale reviews, conversation resolution, enforce admins, no force-push/delete.
+
+## Demo reports (Serenity + Cucumber)
+
+| Report | When | Path / artifact |
+| --- | --- | --- |
+| Serenity HTML | unit or e2e | `target/site/serenity/index.html` → artifacts `serenity-report-unit` / `serenity-report-e2e` |
+| Cucumber HTML / JSON / JUnit XML | e2e only | `target/cucumber-reports/` → artifact `cucumber-reports` |
+| Gradle HTML + JUnit XML | unit | `build/reports/tests/`, `build/test-results/` |
+
+**Devices / Environment** (how many devices, capabilities) appear only after **e2e** against Appium (farm or laptop). The unit artifact is Serenity-backed domain tests — it will not list emulators.
+
+Open reports over HTTP (avoids blank `file://` pages on Windows):
+
+```bash
+./scripts/farm-run-e2e.sh   # or: ./gradlew e2e aggregate
+./scripts/serve-reports.sh  # http://127.0.0.1:8088/serenity/ and .../cucumber/
+```
+
+If you already unzipped a CI artifact on Windows:
+
+```powershell
+cd E:\UnidadPrincipal\Descargas\serenity-report
+python -m http.server 8088
+# then open http://127.0.0.1:8088/index.html
+```
 
 ## Free farm (Docker) — recommended
 

@@ -69,12 +69,14 @@ jobs:
       - name: Run unit tests and Serenity aggregate
         run: ./gradlew --no-daemon clean test aggregate
 
-      - name: Upload Serenity HTML report
+      - name: Upload Serenity HTML report (unit)
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: serenity-report
-          path: target/site/serenity/
+          name: serenity-report-unit
+          path: |
+            target/site/serenity/
+            target/site/serenity/summary.txt
           retention-days: 14
           if-no-files-found: warn
 
@@ -102,16 +104,122 @@ jobs:
           {
             echo "## Unit tests + Serenity report"
             echo ""
-            if [ -f target/site/serenity/index.html ]; then
-              echo "- Serenity index: \`target/site/serenity/index.html\` (artifact **serenity-report**)"
+            echo "Unit tests use SerenityJUnit5 (no Appium). **Devices appear only in the e2e / farm report.**"
+            echo ""
+            if [ -f target/site/serenity/summary.txt ]; then
+              echo '```'
+              cat target/site/serenity/summary.txt
+              echo '```'
+            fi
+            echo "- Artifact **serenity-report-unit** → open \`index.html\` via a local HTTP server (see \`scripts/serve-reports.sh\`)."
+            echo "- Artifact **gradle-test-report** / **junit-xml**"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # Optional mobile e2e (devices + Cucumber reports).
+  # GitHub-hosted runners often expose /dev/kvm but cannot boot nested Android emulators,
+  # so farm e2e is opt-in: self-hosted runner OR repo variable ENABLE_SERENITY_FARM_E2E=true.
+  test-e2e:
+    timeout-minutes: 45
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect free-farm capability
+        id: farm
+        env:
+          ENABLE_FARM: ${{ vars.ENABLE_SERENITY_FARM_E2E }}
+          RUNNER_ENV: ${{ runner.environment }}
+        run: |
+          set -euo pipefail
+          WANT=false
+          if [[ "$RUNNER_ENV" == "self-hosted" ]]; then
+            WANT=true
+          fi
+          if [[ "${ENABLE_FARM:-}" == "true" ]]; then
+            WANT=true
+          fi
+          if [[ "$WANT" != "true" ]]; then
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping e2e on github-hosted (nested emulator unreliable)."
+            echo "Enable with self-hosted runner or repo variable ENABLE_SERENITY_FARM_E2E=true."
+            echo "Local demo: ./scripts/farm-run-e2e.sh && ./scripts/serve-reports.sh"
+            exit 0
+          fi
+          if [[ -e /dev/kvm ]] && command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+            echo "Free farm enabled on this runner"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "Farm requested but /dev/kvm or Docker missing — skipping."
+          fi
+
+      - name: Set up JDK 21
+        if: steps.farm.outputs.available == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - name: Grant execute permission for scripts
+        if: steps.farm.outputs.available == 'true'
+        run: chmod +x gradlew scripts/*.sh
+
+      - name: Start free farm and run Cucumber e2e
+        if: steps.farm.outputs.available == 'true'
+        run: |
+          ./scripts/farm-up.sh
+          ./gradlew --no-daemon e2e aggregate -Dproperties=src/test/resources/serenity-farm.conf
+
+      - name: Upload Serenity HTML report (e2e / devices)
+        if: always() && steps.farm.outputs.available == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: serenity-report-e2e
+          path: target/site/serenity/
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Upload Cucumber native reports (HTML + JSON + JUnit XML)
+        if: always() && steps.farm.outputs.available == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: cucumber-reports
+          path: target/cucumber-reports/
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Upload e2e Gradle / JUnit XML
+        if: always() && steps.farm.outputs.available == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-junit-xml
+          path: build/test-results/e2e/
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## Mobile e2e (Cucumber + Serenity Screenplay)"
+            echo ""
+            if [ "${{ steps.farm.outputs.available }}" != "true" ]; then
+              echo "Skipped (opt-in farm). For **device counts** in Serenity Environment:"
+              echo "\`\`\`bash"
+              echo "./scripts/farm-run-e2e.sh"
+              echo "./scripts/serve-reports.sh"
+              echo "\`\`\`"
+              echo "Or set repo variable \`ENABLE_SERENITY_FARM_E2E=true\` on a farm-capable runner."
             else
-              echo "- Serenity index: missing"
-            fi
-            if [ -d build/reports/tests ]; then
-              echo "- Gradle HTML: artifact **gradle-test-report**"
-            fi
-            if [ -d build/test-results/test ]; then
-              echo "- JUnit XML: artifact **junit-xml**"
+              if [ -f target/site/serenity/summary.txt ]; then
+                echo '```'
+                cat target/site/serenity/summary.txt
+                echo '```'
+              fi
+              echo "- **serenity-report-e2e** → devices / capabilities / screenshots"
+              echo "- **cucumber-reports** → \`cucumber.html\` + \`cucumber.json\` + \`cucumber.xml\`"
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 

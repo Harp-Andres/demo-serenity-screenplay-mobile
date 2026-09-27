@@ -66,6 +66,8 @@ test {
         events "passed", "skipped", "failed"
         showStandardStreams = true
     }
+    // Always rebuild Serenity HTML after unit runs (demo artifact on success/failure).
+    finalizedBy aggregate
 }
 
 tasks.register('e2e', Test) {
@@ -95,6 +97,7 @@ tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }
 
+// Native Serenity HTML (classic multi-page + single-page). Device/env appear after e2e.
 serenity {
-    reports = ['single-page-html']
+    reports = ['html', 'single-page-html']
 }
