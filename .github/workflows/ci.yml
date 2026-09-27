@@ -164,65 +164,65 @@ jobs:
             echo "Full interactive Serenity HTML is in artifact **serenity-report-unit** (or Pages after merge to \`main\`)."
           } >> "$GITHUB_STEP_SUMMARY"
 
-  # Optional mobile e2e (devices + Cucumber reports).
-  # GitHub-hosted runners often expose /dev/kvm but cannot boot nested Android emulators,
-  # so farm e2e is opt-in: self-hosted runner OR repo variable ENABLE_SERENITY_FARM_E2E=true.
+  # Cloud ephemeral Android device (KVM AVD) + Appium + Serenity Cucumber e2e.
+  # Local alternative: Docker/K8s farm via ./scripts/farm-run-e2e.sh (budtmo/docker-android).
   test-e2e:
-    timeout-minutes: 45
+    # Suite ~10–12m; hang-failsafe so notify is not blocked for ~35m.
+    timeout-minutes: 25
     needs: install
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Detect free-farm capability
-        id: farm
-        env:
-          ENABLE_FARM: ${{ vars.ENABLE_SERENITY_FARM_E2E }}
-          RUNNER_ENV: ${{ runner.environment }}
+      - name: Enable KVM for ephemeral emulator
         run: |
-          set -euo pipefail
-          WANT=false
-          if [[ "$RUNNER_ENV" == "self-hosted" ]]; then
-            WANT=true
-          fi
-          if [[ "${ENABLE_FARM:-}" == "true" ]]; then
-            WANT=true
-          fi
-          if [[ "$WANT" != "true" ]]; then
-            echo "available=false" >> "$GITHUB_OUTPUT"
-            echo "Skipping e2e on github-hosted (nested emulator unreliable)."
-            echo "Enable with self-hosted runner or repo variable ENABLE_SERENITY_FARM_E2E=true."
-            echo "Local demo: ./scripts/farm-run-e2e.sh && ./scripts/serve-reports.sh"
-            exit 0
-          fi
-          if [[ -e /dev/kvm ]] && command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
-            echo "available=true" >> "$GITHUB_OUTPUT"
-            echo "Free farm enabled on this runner"
-          else
-            echo "available=false" >> "$GITHUB_OUTPUT"
-            echo "Farm requested but /dev/kvm or Docker missing — skipping."
-          fi
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          ls -l /dev/kvm
 
       - name: Set up JDK 21
-        if: steps.farm.outputs.available == 'true'
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '21'
           cache: gradle
 
+      - name: Set up Node (Appium)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Appium + UiAutomator2
+        run: |
+          npm install -g appium@3
+          appium driver install uiautomator2
+          appium --version
+          appium driver list --installed
+
       - name: Grant execute permission for scripts
-        if: steps.farm.outputs.available == 'true'
         run: chmod +x gradlew scripts/*.sh
 
-      - name: Start free farm and run Cucumber e2e
-        if: steps.farm.outputs.available == 'true'
-        run: |
-          ./scripts/farm-up.sh
-          ./gradlew --no-daemon e2e aggregate -Dproperties=src/test/resources/serenity-farm.conf
+      - name: Run Cucumber e2e on ephemeral Android emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        env:
+          # Emulator often ignores "emu kill" on GHA; don't wait long before SIGKILL.
+          ANDROID_EMULATOR_WAIT_TIME_BEFORE_KILL: 1
+        with:
+          api-level: 29
+          target: google_apis
+          arch: x86_64
+          profile: Nexus 6
+          force-avd-creation: true
+          disable-animations: true
+          emulator-options: -no-snapshot -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          # Action runs `script` line-by-line under /bin/sh — keep a single bash entrypoint.
+          # Helper starts Appium, runs Serenity, and kills crashpad_handler/qemu so teardown
+          # does not hang (ReactiveCircus/android-emulator-runner#385).
+          script: START_APPIUM=1 bash ./scripts/ci-e2e-on-emulator.sh
 
       - name: Upload Serenity HTML report (e2e / devices)
-        if: always() && steps.farm.outputs.available == 'true'
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: serenity-report-e2e
@@ -231,7 +231,7 @@ jobs:
           if-no-files-found: warn
 
       - name: Upload Cucumber native reports (HTML + JSON + JUnit XML)
-        if: always() && steps.farm.outputs.available == 'true'
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: cucumber-reports
@@ -239,19 +239,21 @@ jobs:
           retention-days: 14
           if-no-files-found: warn
 
-      - name: Upload e2e Gradle / JUnit XML
-        if: always() && steps.farm.outputs.available == 'true'
+      - name: Upload e2e Gradle / JUnit XML + Appium log
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: e2e-junit-xml
           path: |
             build/test-results/e2e/
             target/cucumber-reports/cucumber.xml
+            appium-ci.log
           retention-days: 14
           if-no-files-found: warn
 
       - name: Publish e2e / Cucumber results in workflow (Checks)
-        if: always() && steps.farm.outputs.available == 'true'
+        if: always()
+        continue-on-error: true
         uses: dorny/test-reporter@v1
         with:
           name: E2E Cucumber (JUnit)
@@ -260,6 +262,7 @@ jobs:
             target/cucumber-reports/cucumber.xml
           reporter: java-junit
           fail-on-error: false
+          fail-on-empty: false
           list-suites: all
           list-tests: all
 
@@ -267,29 +270,25 @@ jobs:
         if: always()
         run: |
           {
-            echo "## Mobile e2e (Cucumber + Serenity Screenplay)"
+            echo "## Mobile e2e — ephemeral cloud device"
             echo ""
-            if [ "${{ steps.farm.outputs.available }}" != "true" ]; then
-              echo "Skipped (opt-in farm). For **device counts** in Serenity Environment:"
-              echo "\`\`\`bash"
-              echo "./scripts/farm-run-e2e.sh"
-              echo "./scripts/serve-reports.sh"
-              echo "\`\`\`"
-              echo "Or set repo variable \`ENABLE_SERENITY_FARM_E2E=true\` on a farm-capable runner."
+            echo "Device: Android Emulator API 29 (KVM) + Appium UiAutomator2 + TheApp"
+            echo ""
+            echo "| View | Where |"
+            echo "| --- | --- |"
+            echo "| **This run — Checks** | **E2E Cucumber (JUnit)** |"
+            echo "| **This run — Artifacts** | **serenity-report-e2e**, **cucumber-reports** |"
+            echo "| **Live web (main)** | Pages prefers e2e report when present |"
+            echo ""
+            if [ -f target/site/serenity/summary.txt ]; then
+              echo '```'
+              cat target/site/serenity/summary.txt
+              echo '```'
             else
-              echo "| View | Where |"
-              echo "| --- | --- |"
-              echo "| **This run — Checks** | **E2E Cucumber (JUnit)** |"
-              echo "| **This run — Artifacts** | **serenity-report-e2e**, **cucumber-reports** |"
-              echo ""
-              if [ -f target/site/serenity/summary.txt ]; then
-                echo '```'
-                cat target/site/serenity/summary.txt
-                echo '```'
-              fi
-              echo "- **serenity-report-e2e** → devices / capabilities / screenshots"
-              echo "- **cucumber-reports** → \`cucumber.html\` + \`cucumber.json\` + \`cucumber.xml\`"
+              echo "_No Serenity summary (e2e may have failed before aggregate)._"
             fi
+            echo ""
+            echo "Local Docker/K8s farm: \`./scripts/farm-run-e2e.sh\` · Job: \`k8s/android-farm-ephemeral-job.yaml\`"
           } >> "$GITHUB_STEP_SUMMARY"
 
   build:
@@ -323,30 +322,40 @@ jobs:
 
   notify:
     if: always()
-    needs: [lint, test-unit, build]
+    needs: [lint, test-unit, test-e2e, build]
     runs-on: ubuntu-latest
     steps:
       - name: Check workflow status
         run: |
           if [ "${{ needs.lint.result }}" == "success" ] && \
              [ "${{ needs.test-unit.result }}" == "success" ] && \
+             [ "${{ needs.test-e2e.result }}" == "success" ] && \
              [ "${{ needs.build.result }}" == "success" ]; then
-            echo "✅ Lint, unit tests and build PASSED — demo reports available as artifacts."
+            echo "✅ Lint, unit, e2e (ephemeral device) and build PASSED — demo reports ready."
           else
-            echo "❌ Lint, tests or build FAILED — review logs and artifacts."
+            echo "❌ Lint, unit, e2e or build FAILED — review logs and artifacts."
             exit 1
           fi
 
-  # Publish Serenity HTML to GitHub Pages after green CI on main (viewable in the browser).
+  # Publish Serenity HTML to GitHub Pages after green CI on main (prefer e2e / devices).
   publish-report:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [notify, test-unit]
+    needs: [notify, test-unit, test-e2e]
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Download Serenity unit report artifact
+      - name: Download Serenity e2e report (devices)
+        id: e2e_report
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: serenity-report-e2e
+          path: _site
+
+      - name: Fallback to unit report
+        if: steps.e2e_report.outcome != 'success'
         uses: actions/download-artifact@v4
         with:
           name: serenity-report-unit
@@ -368,5 +377,10 @@ jobs:
             echo ""
             echo "Open: **https://harp-andres.github.io/demo-serenity-screenplay-mobile/**"
             echo ""
+            if [ -f _site/summary.txt ]; then
+              echo '```'
+              cat _site/summary.txt
+              echo '```'
+            fi
             echo "Page URL from deploy: ${{ steps.deployment.outputs.page_url }}"
           } >> "$GITHUB_STEP_SUMMARY"

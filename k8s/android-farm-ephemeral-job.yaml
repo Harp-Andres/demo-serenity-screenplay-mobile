@@ -1,0 +1,72 @@
+# Ephemeral Android farm Job (one-shot device node).
+# Requires a Linux node with /dev/kvm and TheApp under /opt/serenity-farm/apps.
+#
+#   kubectl apply -f k8s/android-farm-ephemeral-job.yaml
+#   kubectl -n serenity-farm wait --for=condition=ready pod -l job-name=android-farm-e2e --timeout=600s
+#   kubectl -n serenity-farm port-forward job/android-farm-e2e 4723:4723
+#
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: android-farm-e2e
+  namespace: serenity-farm
+spec:
+  ttlSecondsAfterFinished: 600
+  backoffLimit: 1
+  template:
+    metadata:
+      labels:
+        app: android-farm-ephemeral
+        job-name: android-farm-e2e
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: docker-android
+          image: budtmo/docker-android:emulator_11.0
+          securityContext:
+            privileged: true
+          env:
+            - name: EMULATOR_DEVICE
+              value: "Samsung Galaxy S10"
+            - name: WEB_VNC
+              value: "true"
+            - name: APPIUM
+              value: "true"
+            - name: APPIUM_ADDITIONAL_ARGS
+              value: "--allow-insecure=adb_shell"
+            - name: DATAPARTITION
+              value: "2g"
+          ports:
+            - name: appium
+              containerPort: 4723
+            - name: vnc
+              containerPort: 6080
+          volumeMounts:
+            - name: kvm
+              mountPath: /dev/kvm
+            - name: apps
+              mountPath: /farm/apps
+              readOnly: true
+          resources:
+            requests:
+              memory: "4Gi"
+              cpu: "2"
+            limits:
+              memory: "8Gi"
+              cpu: "4"
+          readinessProbe:
+            httpGet:
+              path: /status
+              port: appium
+            initialDelaySeconds: 90
+            periodSeconds: 10
+            failureThreshold: 60
+      volumes:
+        - name: kvm
+          hostPath:
+            path: /dev/kvm
+            type: CharDevice
+        - name: apps
+          hostPath:
+            path: /opt/serenity-farm/apps
+            type: DirectoryOrCreate

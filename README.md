@@ -19,11 +19,13 @@ On every push/PR (same shape as [mi-portafolio](https://github.com/Harp-Andres/m
 | Job | What it does |
 | --- | --- |
 | `lint` | Compiles main + test sources (Java 21) |
-| `test-unit` | `./gradlew clean test aggregate` + uploads **serenity-report-unit**, Gradle HTML, JUnit XML (**always**, even on failure) |
-| `test-e2e` | Opt-in free farm e2e (self-hosted **or** repo var `ENABLE_SERENITY_FARM_E2E=true`); uploads **serenity-report-e2e** + **cucumber-reports**. Skips on GitHub-hosted (nested emulator unreliable). |
+| `test-unit` | Domain unit tests + Serenity aggregate (**serenity-report-unit**) |
+| `test-e2e` | **Ephemeral cloud device**: KVM Android Emulator (API 29) + Appium + Cucumber on TheApp → **serenity-report-e2e** + **cucumber-reports** |
 | `build` | Assembles compiled classes |
-| `notify` | Gates the workflow green/red (required checks: lint / test-unit / build / notify) |
-| `publish-report` | On push to `main` only: publishes Serenity HTML to **GitHub Pages** |
+| `notify` | Gates green/red (lint + unit + **e2e** + build) |
+| `publish-report` | On `main`: publishes **e2e** Serenity HTML to GitHub Pages (devices / screenshots) |
+
+Local Docker/K8s farm (budtmo) remains available: `./scripts/farm-run-e2e.sh` · ephemeral Job: `k8s/android-farm-ephemeral-job.yaml`.
 
 ### Cómo ver el reporte (estilo Azure: en el run + en la web)
 
