@@ -212,12 +212,14 @@ jobs:
           force-avd-creation: true
           disable-animations: true
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          # android-emulator-runner invokes /bin/sh (no bash pipefail).
           script: |
-            set -euo pipefail
             appium --address 127.0.0.1 --port 4723 --log appium-ci.log &
             echo $! > appium.pid
-            ./scripts/ci-e2e-on-emulator.sh
-            kill "$(cat appium.pid)" || true
+            bash ./scripts/ci-e2e-on-emulator.sh
+            status=$?
+            kill "$(cat appium.pid)" 2>/dev/null || true
+            exit $status
 
       - name: Upload Serenity HTML report (e2e / devices)
         if: always()
