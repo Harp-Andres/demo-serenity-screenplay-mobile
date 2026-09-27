@@ -27,14 +27,17 @@ adb -s emulator-5554 wait-for-device shell getprop sys.boot_completed || true
 
 # Bound the Gradle/Appium run so the CI job cannot hang until the 60m timeout.
 set +e
-timeout 25m ./gradlew --no-daemon e2e aggregate \
-  -Dproperties=src/test/resources/serenity.conf \
+# Prefer classpath resource name (copied from src/test/resources).
+timeout 20m ./gradlew --no-daemon e2e aggregate \
+  -Dproperties=serenity.conf \
   -Dwebdriver.driver=appium \
   -Dappium.hub=http://127.0.0.1:4723/ \
   -Dappium.platformName=Android \
   -Dappium.automationName=UiAutomator2 \
   -Dappium.udid=emulator-5554 \
   -Dappium.deviceName="Android Emulator" \
+  -Dappium.process.desired.capabilities=true \
+  -Dappium.additional.capabilities=app,appActivity,appPackage,autoGrantPermissions,automationName,deviceName,newCommandTimeout,noReset,udid \
   "$@"
 STATUS=$?
 set -e
@@ -44,4 +47,5 @@ echo "Cucumber: target/cucumber-reports/cucumber.html"
 if [ -f target/site/serenity/summary.txt ]; then
   cat target/site/serenity/summary.txt
 fi
+# Force-exit so android-emulator-runner does not hang until the job timeout.
 exit "$STATUS"

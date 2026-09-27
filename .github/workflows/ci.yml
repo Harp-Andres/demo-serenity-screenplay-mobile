@@ -214,11 +214,13 @@ jobs:
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           # android-emulator-runner invokes /bin/sh (no bash pipefail).
           script: |
-            appium --address 127.0.0.1 --port 4723 --log appium-ci.log &
+            appium --address 127.0.0.1 --port 4723 --base-path / --log appium-ci.log &
             echo $! > appium.pid
             bash ./scripts/ci-e2e-on-emulator.sh
             status=$?
             kill "$(cat appium.pid)" 2>/dev/null || true
+            sleep 2
+            kill -9 "$(cat appium.pid)" 2>/dev/null || true
             exit $status
 
       - name: Upload Serenity HTML report (e2e / devices)
