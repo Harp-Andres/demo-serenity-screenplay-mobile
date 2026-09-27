@@ -71,12 +71,23 @@ test {
 tasks.register('e2e', Test) {
     group = 'verification'
     description = 'Runs Cucumber mobile E2E scenarios (requires Appium + device/emulator).'
-    useJUnitPlatform()
+    dependsOn testClasses
+    // Custom Test tasks do not inherit the test source set unless wired explicitly.
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform {
+        includeEngines 'junit-platform-suite', 'cucumber', 'junit-jupiter'
+    }
     filter {
         includeTestsMatching 'com.harp.demo.screenplay.runners.*'
     }
     systemProperty "file.encoding", "UTF-8"
     systemProperties System.getProperties() as Map<String, ? extends Object>
+    testLogging {
+        events "passed", "skipped", "failed"
+        exceptionFormat "full"
+        showStandardStreams = true
+    }
     finalizedBy aggregate
 }
 
