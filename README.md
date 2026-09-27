@@ -20,7 +20,7 @@ On every push/PR (same shape as [mi-portafolio](https://github.com/Harp-Andres/m
 | --- | --- |
 | `lint` | Compiles main + test sources (Java 21) |
 | `test-unit` | `./gradlew clean test aggregate` + uploads **serenity-report-unit**, Gradle HTML, JUnit XML (**always**, even on failure) |
-| `test-e2e` | Free farm e2e when the runner has KVM+Docker; uploads **serenity-report-e2e** + **cucumber-reports** (HTML/JSON/XML). Skips on GitHub-hosted. |
+| `test-e2e` | Opt-in free farm e2e (self-hosted **or** repo var `ENABLE_SERENITY_FARM_E2E=true`); uploads **serenity-report-e2e** + **cucumber-reports**. Skips on GitHub-hosted (nested emulator unreliable). |
 | `build` | Assembles compiled classes |
 | `notify` | Gates the workflow green/red (required checks: lint / test-unit / build / notify) |
 
