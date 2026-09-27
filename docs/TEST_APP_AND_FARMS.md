@@ -7,27 +7,21 @@
 | App | [TheApp](https://github.com/appium-pro/TheApp) (Appium Pro) |
 | Android package | `com.appiumpro.the_app` |
 | Demo login | `alice` / `mypassword` |
-| Local APK path | `apps/TheApp.apk` (via `./scripts/download-test-apps.sh`) |
+| APK | `apps/TheApp.apk` via `./scripts/download-test-apps.sh` |
 
-`serenity.conf` points at `${user.dir}/apps/TheApp.apk` and `http://127.0.0.1:4723`. Do not commit `apps/*.apk` (gitignored).
+## Execution options (this repo)
 
-## Serenity execution options (this repo)
-
-| Mode | Command |
+| Mode | Command / conf |
 | --- | --- |
 | Unit (no device) | `./gradlew test` |
-| Local Appium | `./scripts/download-test-apps.sh` then `./gradlew e2e aggregate` |
-| Docker Appium | `docker compose up -d appium` then `./gradlew e2e aggregate` |
-| BrowserStack | `./gradlew e2e -Dproperties=src/test/resources/serenity-browserstack.conf` (set `BROWSERSTACK_*` env vars) |
+| Laptop Appium | `serenity.conf` + host `:4723` |
+| **Free Docker/K8s farm** | `./scripts/farm-up.sh` + `serenity-farm.conf` — see [`FREE_DEVICE_FARM.md`](FREE_DEVICE_FARM.md) |
+| BrowserStack (optional) | `serenity-browserstack.conf` |
 
-Cloud profiles are **additive**; local `serenity.conf` stays the default so laptop + emulator workflows keep working.
-
-## Multi-farm depth (sibling repos)
+## Sibling specialties
 
 | Repo | Focus |
 | --- | --- |
-| `appium-mobile-automation-framework` | Mature **self-hosted/local** Appium runner + TheApp (keep runner labels / Appium / mvn -Pbdd) |
-| `appium-mobile-cloud-automation-framework` | BrowserStack, AWS Device Farm, farm wiring |
-| **This repo** | Serenity Screenplay + reporting; optional Docker Appium hub you control |
-
-For Sauce sample IPA, ApiDemos, Device Farm custom environments, and grid/K8s notes, follow the cloud and local framework repos above—this demo stays Serenity-centric.
+| `appium-mobile-automation-framework` | Mature Windows **self-hosted** runner + TheApp |
+| `appium-mobile-cloud-automation-framework` | BrowserStack / AWS Device Farm |
+| **This repo** | Serenity Screenplay + **free personal farm** (Docker/K8s virtual devices) |
