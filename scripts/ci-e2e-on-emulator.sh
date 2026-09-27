@@ -1,12 +1,40 @@
 #!/usr/bin/env bash
 # Run Serenity Cucumber e2e against an already-booted Android emulator + Appium on :4723.
+# Owns Appium start/stop when START_APPIUM=1 (CI). Keep this as a single bash entrypoint:
+# android-emulator-runner executes its `script` line-by-line under /bin/sh (no functions).
 set -eu
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
+APPIUM_PID=""
+START_APPIUM="${START_APPIUM:-0}"
+
+cleanup() {
+  if [[ -n "${APPIUM_PID}" ]]; then
+    kill "${APPIUM_PID}" 2>/dev/null || true
+    sleep 1
+    kill -9 "${APPIUM_PID}" 2>/dev/null || true
+  fi
+  pkill -f 'GradleWorkerMain|GradleDaemon' 2>/dev/null || true
+  # crashpad_handler orphans keep reactivecircus/android-emulator-runner hung after emu kill
+  # (https://github.com/ReactiveCircus/android-emulator-runner/issues/385).
+  timeout 5 adb -s emulator-5554 emu kill >/dev/null 2>&1 || true
+  pkill -TERM -f '[c]rashpad_handler' 2>/dev/null || true
+  sleep 2
+  pkill -KILL -f '[c]rashpad_handler' 2>/dev/null || true
+  pkill -KILL -f '[q]emu-system' 2>/dev/null || true
+  pkill -KILL -f '[e]mulator -avd' 2>/dev/null || true
+}
+trap cleanup EXIT
+
 chmod +x gradlew scripts/*.sh
 ./scripts/download-test-apps.sh
 test -f apps/TheApp.apk
+
+if [[ "${START_APPIUM}" == "1" ]]; then
+  appium --address 127.0.0.1 --port 4723 --base-path / --log appium-ci.log &
+  APPIUM_PID=$!
+fi
 
 echo "Waiting for Appium on :4723..."
 for i in $(seq 1 60); do
@@ -39,14 +67,6 @@ timeout -k 20s 15m ./gradlew --no-daemon e2e aggregate \
   -Dserenity.restart.browser.for.each=scenario
 STATUS=$?
 set -e
-
-# Best-effort cleanup so the Actions step can finish.
-# crashpad_handler orphans keep reactivecircus/android-emulator-runner hung after emu kill
-# (https://github.com/ReactiveCircus/android-emulator-runner/issues/385).
-pkill -f 'GradleWorkerMain|GradleDaemon' 2>/dev/null || true
-pkill -TERM -f '[c]rashpad_handler' 2>/dev/null || true
-sleep 1
-pkill -KILL -f '[c]rashpad_handler' 2>/dev/null || true
 
 echo "Serenity: target/site/serenity/index.html"
 echo "Cucumber: target/cucumber-reports/cucumber.html"

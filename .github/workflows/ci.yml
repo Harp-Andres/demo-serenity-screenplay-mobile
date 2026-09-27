@@ -216,26 +216,10 @@ jobs:
           force-avd-creation: true
           disable-animations: true
           emulator-options: -no-snapshot -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-          # android-emulator-runner invokes /bin/sh (no bash pipefail).
-          # After a green suite the action hangs on teardown unless crashpad_handler
-          # (emulator crash reporter) is killed — see ReactiveCircus/android-emulator-runner#385.
-          script: |
-            cleanup() {
-              kill "$(cat appium.pid 2>/dev/null)" 2>/dev/null || true
-              kill -9 "$(cat appium.pid 2>/dev/null)" 2>/dev/null || true
-              timeout 5 adb -s emulator-5554 emu kill >/dev/null 2>&1 || true
-              pkill -TERM -f '[c]rashpad_handler' 2>/dev/null || true
-              sleep 2
-              pkill -KILL -f '[c]rashpad_handler' 2>/dev/null || true
-              pkill -KILL -f '[q]emu-system' 2>/dev/null || true
-              pkill -KILL -f '[e]mulator -avd' 2>/dev/null || true
-            }
-            appium --address 127.0.0.1 --port 4723 --base-path / --log appium-ci.log &
-            echo $! > appium.pid
-            bash ./scripts/ci-e2e-on-emulator.sh
-            status=$?
-            cleanup
-            exit $status
+          # Action runs `script` line-by-line under /bin/sh — keep a single bash entrypoint.
+          # Helper starts Appium, runs Serenity, and kills crashpad_handler/qemu so teardown
+          # does not hang (ReactiveCircus/android-emulator-runner#385).
+          script: START_APPIUM=1 bash ./scripts/ci-e2e-on-emulator.sh
 
       - name: Upload Serenity HTML report (e2e / devices)
         if: always()
