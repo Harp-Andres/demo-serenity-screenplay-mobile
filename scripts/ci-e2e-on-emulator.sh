@@ -41,7 +41,12 @@ STATUS=$?
 set -e
 
 # Best-effort cleanup so the Actions step can finish.
-pkill -f 'GradleWorkerMain|GradleDaemon|serenity' 2>/dev/null || true
+# crashpad_handler orphans keep reactivecircus/android-emulator-runner hung after emu kill
+# (https://github.com/ReactiveCircus/android-emulator-runner/issues/385).
+pkill -f 'GradleWorkerMain|GradleDaemon' 2>/dev/null || true
+pkill -TERM -f '[c]rashpad_handler' 2>/dev/null || true
+sleep 1
+pkill -KILL -f '[c]rashpad_handler' 2>/dev/null || true
 
 echo "Serenity: target/site/serenity/index.html"
 echo "Cucumber: target/cucumber-reports/cucumber.html"
