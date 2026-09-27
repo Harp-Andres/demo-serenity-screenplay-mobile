@@ -1,6 +1,10 @@
 # demo-serenity-screenplay-mobile
 
-Teaching demo for **mobile automation with Serenity BDD and the Screenplay pattern** (Actor, Task, Question, UI targets) on **Appium**, with rich **Serenity reports** (`aggregate`). The app under test is **[TheApp](https://github.com/appium-pro/TheApp)** (`com.appiumpro.the_app`); demo login is `alice` / `mypassword`. This repo is not a multi-farm framework and not classic POM—for those, use sibling repos [`appium-mobile-automation-framework`](https://github.com/Harp-Andres/appium-mobile-automation-framework) (local Appium/Cucumber) and [`appium-mobile-cloud-automation-framework`](https://github.com/Harp-Andres/appium-mobile-cloud-automation-framework) (BrowserStack / AWS Device Farm).
+Teaching demo for **mobile automation with Serenity BDD and the Screenplay pattern** (Actor, Task, Question, UI targets) on **Appium**, with rich **Serenity reports** (`aggregate`). The app under test is **[TheApp](https://github.com/appium-pro/TheApp)** (`com.appiumpro.the_app`); demo login is `alice` / `mypassword`.
+
+Sibling specialties (do not mix):
+- [`appium-mobile-automation-framework`](https://github.com/Harp-Andres/appium-mobile-automation-framework) — **mature local / self-hosted** Appium + ExpandTesting (leave that flow alone)
+- [`appium-mobile-cloud-automation-framework`](https://github.com/Harp-Andres/appium-mobile-cloud-automation-framework) — BrowserStack / AWS Device Farm
 
 ## Run
 
