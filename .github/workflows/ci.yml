@@ -204,6 +204,9 @@ jobs:
 
       - name: Run Cucumber e2e on ephemeral Android emulator
         uses: reactivecircus/android-emulator-runner@v2
+        env:
+          # Emulator often ignores "emu kill" on GHA; don't wait long before SIGKILL.
+          ANDROID_EMULATOR_WAIT_TIME_BEFORE_KILL: 1
         with:
           api-level: 29
           target: google_apis
@@ -211,7 +214,7 @@ jobs:
           profile: Nexus 6
           force-avd-creation: true
           disable-animations: true
-          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          emulator-options: -no-snapshot -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           # android-emulator-runner invokes /bin/sh (no bash pipefail).
           script: |
             appium --address 127.0.0.1 --port 4723 --base-path / --log appium-ci.log &
@@ -219,8 +222,14 @@ jobs:
             bash ./scripts/ci-e2e-on-emulator.sh
             status=$?
             kill "$(cat appium.pid)" 2>/dev/null || true
-            sleep 2
+            sleep 1
             kill -9 "$(cat appium.pid)" 2>/dev/null || true
+            # Force-stop qemu so reactivecircus teardown does not hang ~30m after a green suite.
+            adb -s emulator-5554 emu kill >/dev/null 2>&1 || true
+            sleep 2
+            pkill -9 -f 'qemu-system' 2>/dev/null || true
+            pkill -9 -f 'emulator -avd' 2>/dev/null || true
+            pkill -9 -f 'emulator64-' 2>/dev/null || true
             exit $status
 
       - name: Upload Serenity HTML report (e2e / devices)
