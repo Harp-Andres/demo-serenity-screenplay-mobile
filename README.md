@@ -25,13 +25,18 @@ On every push/PR (same shape as [mi-portafolio](https://github.com/Harp-Andres/m
 | `notify` | Gates the workflow green/red (required checks: lint / test-unit / build / notify) |
 | `publish-report` | On push to `main` only: publishes Serenity HTML to **GitHub Pages** |
 
-### Ver el reporte en la web (después del Action)
+### Cómo ver el reporte (estilo Azure: en el run + en la web)
 
-Tras un CI verde en `main`, el reporte queda publicado aquí:
+| Dónde | Qué ves | Cuándo |
+| --- | --- | --- |
+| **Mismo Action → Summary** | Tabla Serenity (scenarios / passed / failed) en el Job Summary del run | Cada push/PR |
+| **Mismo Action → Checks** | Resultados JUnit anotados (`Unit tests (JUnit)`), similar a la pestaña Tests de Azure | Cada push/PR |
+| **Mismo Action → Artifacts** | ZIP HTML completo (`serenity-report-unit`) | Cada push/PR (éxito o fallo) |
+| **GitHub Pages (web)** | HTML Serenity navegable en el browser | Tras CI verde en `main` |
 
-**https://harp-andres.github.io/demo-serenity-screenplay-mobile/**
+**Live:** https://harp-andres.github.io/demo-serenity-screenplay-mobile/
 
-También: pestaña **Actions** → run → artifact `serenity-report-unit` (descarga ZIP). En PRs solo hay artifact; Pages se actualiza al mergear a `main`.
+En PRs: Summary + Checks + Artifacts. Pages se actualiza al mergear a `main`.
 
 `main` is protected like mi-portafolio: required status checks (strict), dismiss stale reviews, conversation resolution, enforce admins, no force-push/delete.
 
